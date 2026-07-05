@@ -1,0 +1,62 @@
+{
+  "name": "@goddo/goddo",
+  "version": "0.1.0",
+  "exports": "./lib/index.ts",
+  "tasks": {
+    "dev": "deno run --watch --allow-net --allow-env src/index.ts",
+    "start": "deno run --allow-net --allow-env src/index.ts",
+    "test": "deno test --allow-net --allow-read --allow-env",
+    "check": "deno check lib/index.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint",
+    "bench": "deno bench --allow-net benchmarks/",
+    "init": "deno run --allow-read --allow-write scripts/init.ts"
+  },
+  "imports": {
+    "@goddo/html": "./lib/plugins/html/index.ts",
+    "@goddo/html/jsx-runtime": "./lib/plugins/html/jsx-runtime.ts",
+    "goddo": "./lib/index.ts",
+    "goddo/": "./lib/",
+    "@goddo/router": "./lib/router.ts",
+    "@goddo/context": "./lib/context.ts",
+    "@goddo/types": "./lib/types.ts",
+    "@goddo/handler": "./lib/handler.ts",
+    "@goddo/error": "./lib/error.ts",
+    "@goddo/schema": "./lib/schema.ts",
+    "@goddo/cookie": "./lib/cookie.ts",
+    "@goddo/cors": "./lib/plugins/cors.ts",
+    "@goddo/openapi": "./lib/plugins/openapi.ts",
+    "@goddo/static": "./lib/plugins/static.ts",
+    "@goddo/jwt": "./lib/plugins/jwt.ts",
+    "@goddo/treaty": "./lib/plugins/treaty.ts",
+    "@goddo/ws": "./lib/ws.ts",
+    "@goddo/compile": "./lib/compile.ts",
+    "@goddo/bearer": "./lib/plugins/bearer.ts",
+    "@goddo/cron": "./lib/plugins/cron.ts",
+    "@goddo/server-timing": "./lib/plugins/server-timing.ts"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "@goddo/html"
+  },
+  "fmt": {
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": true,
+    "semiColons": false
+  },
+  "lint": {
+    "rules": {
+      "tags": [
+        "recommended"
+      ]
+    }
+  },
+  "exclude": [
+    "**/node_modules",
+    "bruno/"
+  ]
+}
