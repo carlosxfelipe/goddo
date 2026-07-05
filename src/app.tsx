@@ -1,6 +1,7 @@
 import { Goddo, t } from 'goddo'
 import { html, HtmlString } from '@goddo/html'
 import { openapi } from '@goddo/openapi'
+import { llmstxt } from '@goddo/llms-txt'
 
 type Todo = { id: number; title: string; completed: boolean }
 
@@ -19,6 +20,10 @@ export const app = new Goddo()
       },
     }),
   )
+  .use(llmstxt({
+    title: 'My Todos API',
+    description: 'An API to manage your tasks',
+  }))
   .use(html())
   .get('/', ({ redirect }) => redirect('/docs'))
   .get('/page', () => {

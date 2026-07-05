@@ -303,6 +303,30 @@ Options: `path` (default `/docs`), `documentation` (base OpenAPI document), `det
 (`summary`, `description`, `tags`, ...), `exclude` (paths excluded from spec), `scalarConfig` and
 `version` (Scalar CDN version).
 
+## AI Documentation (`@goddo/llms-txt`)
+
+A native, zero-dependency plugin that generates an `/llms.txt` endpoint. It leverages Goddo's route tree and TypeBox schemas to output an LLM-friendly Markdown documentation of your API. This makes your application instantly compatible with AI agents and LLMs.
+
+```ts
+import { Goddo, t } from 'goddo'
+import { llmstxt } from '@goddo/llms-txt'
+
+new Goddo()
+  .use(llmstxt({
+    title: 'My Custom API',
+    description: 'Documentation optimized for LLMs',
+    exclude: ['/docs', '/docs/json']
+  }))
+  .get('/user/:id', ({ params: { id } }) => id, {
+    params: t.Object({ id: t.Numeric({ description: 'User ID' }) }),
+    detail: { summary: 'Fetch user' },
+  })
+  .listen(3000)
+// AI Docs: GET /llms.txt
+```
+
+Options: `path` (default `/llms.txt`), `title`, `description`, and `exclude` (paths excluded from spec).
+
 ## HTML SSR (`@goddo/html`)
 
 A highly optimized plugin that enables zero-build Server-Side Rendering by compiling TSX natively.

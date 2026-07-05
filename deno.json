@@ -26,6 +26,7 @@
     "@goddo/cookie": "./lib/cookie.ts",
     "@goddo/cors": "./lib/plugins/cors.ts",
     "@goddo/openapi": "./lib/plugins/openapi.ts",
+    "@goddo/llms-txt": "./lib/plugins/llms-txt.ts",
     "@goddo/static": "./lib/plugins/static.ts",
     "@goddo/jwt": "./lib/plugins/jwt.ts",
     "@goddo/treaty": "./lib/plugins/treaty.ts",

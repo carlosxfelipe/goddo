@@ -7,6 +7,7 @@ import { ValidationError } from '@goddo/error'
 export interface SchemaOptions {
   error?: string
   default?: unknown
+  description?: string
 }
 
 export interface TSchema extends SchemaOptions {
