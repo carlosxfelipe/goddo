@@ -1,8 +1,14 @@
-import './types.ts'
+export type { JSX } from './types.ts'
 
+/** Represents a raw HTML string that should not be escaped. */
 export class HtmlString extends String {}
+
+/** JSX Fragment component. */
 export const Fragment = Symbol('Fragment')
 
+/**
+ * Escapes HTML characters in a string.
+ */
 export function escapeHtml(str: string): string {
   const matchHtmlRegExp = /["'&<>]/
   const match = matchHtmlRegExp.exec(str)
@@ -42,6 +48,9 @@ export function escapeHtml(str: string): string {
   return lastIndex !== index ? html + str.substring(lastIndex, index) : html
 }
 
+/**
+ * JSX factory function.
+ */
 export function jsx(type: unknown, props: Record<string, unknown>): unknown {
   if (typeof type === 'function') {
     return type(props)
@@ -93,5 +102,8 @@ export function jsx(type: unknown, props: Record<string, unknown>): unknown {
   }
 }
 
-export const jsxs = jsx
-export const jsxDEV = jsx
+/** JSX factory function for static children. */
+export const jsxs: (type: unknown, props: Record<string, unknown>) => unknown = jsx
+
+/** JSX factory function for development. */
+export const jsxDEV: (type: unknown, props: Record<string, unknown>) => unknown = jsx
