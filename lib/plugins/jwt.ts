@@ -15,11 +15,11 @@
  *   .listen(3000)
  * ```
  */
-import type { Goddo } from 'goddo'
+// No imports here
 
 export type JWTAlgorithm = 'HS256' | 'HS384' | 'HS512'
 
-export interface JWTOptions {
+export interface JWTOptions<Name extends string = 'jwt'> {
   /**
    * Secret string used to sign/verify tokens.
    * Minimum 32 characters is recommended for HS256.
@@ -29,7 +29,7 @@ export interface JWTOptions {
    * Name of the key added to the context object.
    * @default 'jwt'
    */
-  name?: string
+  name?: Name
   /**
    * HMAC algorithm to use.
    * @default 'HS256'
@@ -181,25 +181,29 @@ async function parseJWT(
  *   .listen(3000)
  * ```
  */
-export const jwt = (options: JWTOptions) => (app: Goddo): Goddo => {
-  const alg = options.alg ?? 'HS256'
-  const name = options.name ?? 'jwt'
+export const jwt =
+  <Name extends string = 'jwt'>(options: JWTOptions<Name> = {} as JWTOptions<Name>) =>
+  <
+    App extends import('@goddo/types').AnyGoddo,
+  >(app: App) => {
+    const alg = options.alg ?? 'HS256'
+    const name = (options.name ?? 'jwt') as Name
 
-  // Build the key once and cache it via a promise so it is shared across requests
-  const keyPromise: Promise<CryptoKey> = importKey(options.secret, alg)
+    // Build the key once and cache it via a promise so it is shared across requests
+    const keyPromise: Promise<CryptoKey> = importKey(options.secret, alg)
 
-  const makeInterface = async (): Promise<JWTInterface> => {
-    const key = await keyPromise
-    return {
-      sign: (payload: JWTPayload) => buildJWT(payload, key, alg, options.exp),
-      verify: (token: string) => parseJWT(token, key),
+    const makeInterface = async (): Promise<JWTInterface> => {
+      const key = await keyPromise
+      return {
+        sign: (payload: JWTPayload) => buildJWT(payload, key, alg, options.exp),
+        verify: (token: string) => parseJWT(token, key),
+      }
     }
-  }
 
-  return app.derive(async (_ctx) => {
-    const jwtInterface = await makeInterface()
-    return { [name]: jwtInterface }
-  })
-}
+    return app.derive(async (_ctx) => {
+      const jwtInterface = await makeInterface()
+      return { [name]: jwtInterface } as Record<Name, JWTInterface>
+    })
+  }
 
 export default jwt

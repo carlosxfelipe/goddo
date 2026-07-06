@@ -11,14 +11,12 @@ export interface SchemaOptions {
 }
 
 export interface TSchema extends SchemaOptions {
-  // deno-lint-ignore no-explicit-any
-  static: any
+  static: unknown
   type: string
   optional?: boolean
 }
 
-// deno-lint-ignore ban-types
-type Prettify<T> = { [K in keyof T]: T[K] } & {}
+type Prettify<T> = { [K in keyof T]: T[K] } & unknown
 
 export type Static<T extends TSchema> = T['static']
 
@@ -76,8 +74,7 @@ export interface TNull extends TSchema {
 }
 
 export interface TAny extends TSchema {
-  // deno-lint-ignore no-explicit-any
-  static: any
+  static: unknown
   type: 'any'
 }
 

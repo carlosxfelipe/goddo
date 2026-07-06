@@ -1,11 +1,6 @@
 import { Goddo } from 'goddo'
 import { jwt } from '../lib/plugins/jwt.ts'
 
-// Note: `jwt` is injected via .derive(), which does not yet propagate its type
-// through the generic chain (documented in Backlog). Handlers use `any` here.
-// deno-lint-ignore no-explicit-any
-type AnyCtx = any
-
 const req = (app: Goddo, path: string, init?: RequestInit) =>
   app.handle(new Request(`http://localhost${path}`, init))
 
@@ -13,8 +8,8 @@ const req = (app: Goddo, path: string, init?: RequestInit) =>
 
 Deno.test('JWT sign returns a three-part token', async () => {
   const app = new Goddo()
-    .use(jwt({ secret: 'super-secret-key-32-characters!!' }))
-    .get('/sign', async (ctx: AnyCtx) => await ctx.jwt.sign({ sub: '1' }))
+    .use(jwt<'jwt'>({ secret: 'super-secret-key-32-characters!!' }))
+    .get('/sign', async ({ jwt }) => await jwt.sign({ sub: '123' }))
 
   const res = await req(app, '/sign')
   const token = await res.text()
@@ -27,9 +22,9 @@ Deno.test('JWT sign returns a three-part token', async () => {
 Deno.test('JWT verify returns payload for valid token', async () => {
   const app = new Goddo()
     .use(jwt({ secret: 'super-secret-key-32-characters!!' }))
-    .get('/sign', async (ctx: AnyCtx) => await ctx.jwt.sign({ sub: '42', role: 'admin' }))
-    .get('/verify', async (ctx: AnyCtx) => {
-      const result = await ctx.jwt.verify(ctx.query['token'] ?? '')
+    .get('/sign', async ({ jwt }) => await jwt.sign({ sub: '42', role: 'admin' }))
+    .get('/verify', async ({ jwt, query }) => {
+      const result = await jwt.verify(query.token ?? '')
       return result
     })
 
@@ -46,8 +41,8 @@ Deno.test('JWT verify returns payload for valid token', async () => {
 Deno.test('JWT verify returns false for invalid signature', async () => {
   const app = new Goddo()
     .use(jwt({ secret: 'super-secret-key-32-characters!!' }))
-    .get('/verify', async (ctx: AnyCtx) => {
-      const result = await ctx.jwt.verify(ctx.query['token'] ?? '')
+    .get('/verify', async ({ jwt, query }) => {
+      const result = await jwt.verify(query.token ?? '')
       return result === false ? 'false' : 'true'
     })
 
@@ -60,9 +55,9 @@ Deno.test('JWT verify returns false for expired token', async () => {
   // Sign with exp=-1 so the token is already expired
   const app = new Goddo()
     .use(jwt({ secret: 'super-secret-key-32-characters!!', exp: -1 }))
-    .get('/sign', async (ctx: AnyCtx) => await ctx.jwt.sign({ sub: '99' }))
-    .get('/verify', async (ctx: AnyCtx) => {
-      const result = await ctx.jwt.verify(ctx.query['token'] ?? '')
+    .get('/sign', async ({ jwt }) => await jwt.sign({ sub: '1' }))
+    .get('/verify', async ({ jwt, query }) => {
+      const result = await jwt.verify(query.token ?? '')
       return result === false ? 'false' : 'true'
     })
 
@@ -79,7 +74,7 @@ Deno.test('JWT verify returns false for expired token', async () => {
 Deno.test('JWT supports custom context key name', async () => {
   const app = new Goddo()
     .use(jwt({ secret: 'super-secret-key-32-characters!!', name: 'auth' }))
-    .get('/sign', async (ctx: AnyCtx) => await ctx.auth.sign({ sub: 'x' }))
+    .get('/sign', async ({ auth }) => await auth.sign({ sub: 'x' }))
 
   const res = await req(app, '/sign')
   const token = await res.text()
@@ -91,27 +86,27 @@ Deno.test('JWT supports custom context key name', async () => {
 Deno.test('JWT HS384 sign and verify', async () => {
   const app = new Goddo()
     .use(jwt({ secret: 'super-secret-key-32-characters!!', alg: 'HS384' }))
-    .get('/sign', async (ctx: AnyCtx) => await ctx.jwt.sign({ sub: 'hs384' }))
-    .get('/verify', async (ctx: AnyCtx) => {
-      const result = await ctx.jwt.verify(ctx.query['token'] ?? '')
+    .get('/sign', async ({ jwt }) => await jwt.sign({ sub: '384' }))
+    .get('/verify', async ({ jwt, query }) => {
+      const result = await jwt.verify(query.token ?? '')
       return result
     })
 
   const token = await (await req(app, '/sign')).text()
   const payload = await (await req(app, `/verify?token=${encodeURIComponent(token)}`)).json()
-  if (payload.sub !== 'hs384') throw new Error(`sub mismatch: ${payload.sub}`)
+  if (payload.sub !== '384') throw new Error(`sub mismatch: ${payload.sub}`)
 })
 
 Deno.test('JWT HS512 sign and verify', async () => {
   const app = new Goddo()
     .use(jwt({ secret: 'super-secret-key-32-characters!!', alg: 'HS512' }))
-    .get('/sign', async (ctx: AnyCtx) => await ctx.jwt.sign({ sub: 'hs512' }))
-    .get('/verify', async (ctx: AnyCtx) => {
-      const result = await ctx.jwt.verify(ctx.query['token'] ?? '')
+    .get('/sign', async ({ jwt }) => await jwt.sign({ sub: '512' }))
+    .get('/verify', async ({ jwt, query }) => {
+      const result = await jwt.verify(query.token ?? '')
       return result
     })
 
   const token = await (await req(app, '/sign')).text()
   const payload = await (await req(app, `/verify?token=${encodeURIComponent(token)}`)).json()
-  if (payload.sub !== 'hs512') throw new Error(`sub mismatch: ${payload.sub}`)
+  if (payload.sub !== '512') throw new Error(`sub mismatch: ${payload.sub}`)
 })

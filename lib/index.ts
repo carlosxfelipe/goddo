@@ -10,6 +10,7 @@ import { GoddoWebSocket } from '@goddo/ws'
 import type { TopicMap, WSOptions } from '@goddo/ws'
 import type {
   AddRoute,
+  AnyGoddo,
   AssertNoReservedSegment,
   ErrorHandler,
   GoddoConfig,
@@ -34,10 +35,7 @@ export class Goddo<
   InstanceContext extends Record<string, unknown> = Record<never, never>,
   Routes extends RouteRegistry = Record<never, never>,
 > {
-  /**
-   * @internal Phantom type — holds the accumulated route registry.
-   * Never assigned at runtime; used exclusively for Treaty type inference.
-   */
+  declare readonly _context: InstanceContext
   declare readonly _routes: Routes
 
   config: GoddoConfig
@@ -311,12 +309,11 @@ export class Goddo<
   use<PluginContext extends Record<string, unknown>, PluginRoutes extends RouteRegistry>(
     plugin: Goddo<PluginContext, PluginRoutes>,
   ): Goddo<InstanceContext & PluginContext, Routes & PluginRoutes>
-  /** Register a function plugin. Propagates the plugin's context and route modifications. */
   use<
-    PluginContext extends Record<string, unknown>,
-    PluginRoutes extends RouteRegistry,
-    PluginApp extends Goddo<PluginContext, PluginRoutes>,
-  >(plugin: (app: this) => PluginApp): PluginApp
+    Plugin extends AnyGoddo | ((app: this) => AnyGoddo),
+  >(
+    plugin: Plugin,
+  ): Plugin extends (app: this) => infer PluginApp ? PluginApp : Plugin
   use(plugin: unknown): unknown {
     if (typeof plugin === 'function') {
       return (plugin as (app: this) => unknown)(this)
@@ -333,8 +330,7 @@ export class Goddo<
     Object.assign(this.macros, instance.macros)
 
     for (const key of Object.keys(this.event) as (keyof LifeCycleStore)[]) {
-      // deno-lint-ignore no-explicit-any
-      ;(this.event[key] as any[]).push(...instance.event[key])
+      ;(this.event[key] as unknown[]).push(...instance.event[key])
     }
 
     return this
@@ -407,8 +403,7 @@ export class Goddo<
       const guardArr = toArray(guard[key])
       const localArr = toArray(result[key])
       if (guardArr.length > 0 || localArr.length > 0) {
-        // deno-lint-ignore no-explicit-any
-        result[key] = [...guardArr, ...localArr] as any
+        result[key] = [...guardArr, ...localArr] as never
       }
     }
 
@@ -703,11 +698,12 @@ export { compileRoutes } from '@goddo/compile'
 export type { CompiledHandler, CompiledRoute } from '@goddo/compile'
 export { Cookie, CookieJar } from '@goddo/cookie'
 export type { CookieProxy } from '@goddo/cookie'
-export type { Context }
+export type { Context } from '@goddo/context'
 export { GoddoWebSocket } from '@goddo/ws'
 export type { TopicMap, WSOptions } from '@goddo/ws'
 export type {
   AddRoute,
+  AnyGoddo,
   Handler,
   HTTPMethod,
   InferContext,

@@ -175,8 +175,7 @@ Deno.test('derive extends context before validation', async () => {
     .derive(({ headers }) => ({
       bearer: headers['authorization']?.replace('Bearer ', '') ?? 'none',
     }))
-    // deno-lint-ignore no-explicit-any
-    .get('/token', (ctx: any) => ctx.bearer)
+    .get('/token', ({ bearer }) => bearer)
 
   const res = await req(app, '/token', { headers: { authorization: 'Bearer mytoken' } })
   if ((await res.text()) !== 'mytoken') throw new Error('derive failed')
@@ -191,8 +190,7 @@ Deno.test('resolve extends context after validation', async () => {
     .resolve(({ headers }) => ({
       userId: headers['x-user-id'] ?? 'anonymous',
     }))
-    // deno-lint-ignore no-explicit-any
-    .get('/me', (ctx: any) => `user:${ctx.userId}`)
+    .get('/me', ({ userId }) => `user:${userId}`)
 
   const res = await req(app, '/me', { headers: { 'x-user-id': '42' } })
   if ((await res.text()) !== 'user:42') throw new Error('resolve failed')
@@ -205,7 +203,7 @@ Deno.test('resolve extends context after validation', async () => {
 Deno.test('macro expands custom route options into hooks', async () => {
   const app = new Goddo()
     .macro({
-      auth: (enabled: boolean) => ({
+      auth: (enabled: unknown) => ({
         beforeHandle: (
           { headers, error }: { headers: Record<string, string>; error: (status: number) => Error },
         ) => {

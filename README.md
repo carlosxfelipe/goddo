@@ -2,8 +2,7 @@
 
 > _Goddo Kurosu – God Cloths_
 
-An ergonomic web framework for **Deno**, recreating the [ElysiaJS](https://elysiajs.com) syntax 1:1
-— **zero npm dependencies**, built exclusively with native Deno and Web Platform APIs.
+An ergonomic web framework for **Deno**, engineered to recreate the [ElysiaJS](https://elysiajs.com) syntax with a **1:1 Developer Experience (DX)**. Enjoy End-to-End Type Safety, seamless autocompletion, and an incredibly intuitive API — **zero npm dependencies**, built exclusively with native Deno and Web Platform APIs.
 
 ## Requirements
 
@@ -463,8 +462,8 @@ new Goddo()
 ## Treaty (`@goddo/treaty`)
 
 A type-safe HTTP client generated at compile time from your app's route types — the Goddo equivalent
-of [Elysia Eden](https://elysiajs.com/eden/treaty/overview.html). No code generation: everything is
-inferred via TypeScript generics and a runtime `Proxy`.
+of [Elysia Eden](https://elysiajs.com/eden/treaty/overview.html), delivering an unmatched **Developer Experience (DX)**. No code generation: everything is
+inferred via deep TypeScript generics and a runtime `Proxy` to give you perfect end-to-end autocompletion.
 
 ### Setup
 

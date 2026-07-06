@@ -1,4 +1,3 @@
-import { Goddo } from '../index.ts'
 import type { Context } from '../context.ts'
 
 export interface RateLimitOptions {
@@ -22,11 +21,7 @@ export function rateLimit(options: RateLimitOptions = {}) {
     }
   }, windowMs).unref?.() // Use unref if available so it doesn't block exit
 
-  return <
-    InstanceContext extends Record<string, unknown>,
-    Routes extends import('@goddo/types').RouteRegistry,
-    App extends Goddo<InstanceContext, Routes>,
-  >(app: App) =>
+  return <App extends import('@goddo/types').AnyGoddo>(app: App) =>
     app.onRequest((context: Context) => {
       // Deno.ServeHandlerInfo provides remoteAddr.hostname
       // If it's not available, fallback to a global counter or a dummy IP

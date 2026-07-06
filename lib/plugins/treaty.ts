@@ -179,8 +179,7 @@ function createProxy(baseUrl: string, segments: string[], globalOpts: TreatyOpti
             try {
               const response = await fetch(url.toString(), fetchInit)
               const ct = response.headers.get('content-type') ?? ''
-              // deno-lint-ignore no-explicit-any
-              const raw: any = ct.includes('application/json')
+              const raw: unknown = ct.includes('application/json')
                 ? await response.json()
                 : await response.text()
 

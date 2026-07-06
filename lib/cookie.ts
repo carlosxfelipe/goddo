@@ -331,5 +331,4 @@ export class CookieJar {
 
 // Re-export a helper type so consumers can destructure cookies with dot-access
 // while still getting Cookie types: `{ cookie: { session } }` → session: Cookie.
-// deno-lint-ignore no-explicit-any
-export type CookieProxy = CookieJar & { [name: string]: Cookie } & Record<string, any>
+export type CookieProxy = CookieJar & { [name: string]: Cookie }

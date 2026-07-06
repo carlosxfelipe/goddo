@@ -1,4 +1,3 @@
-import { Goddo } from '../index.ts'
 import type { Context } from '../context.ts'
 
 export interface CsrfOptions {
@@ -24,11 +23,7 @@ export function csrf(options: CsrfOptions = {}) {
     ...options.cookieOptions,
   }
 
-  return <
-    InstanceContext extends Record<string, unknown>,
-    Routes extends import('@goddo/types').RouteRegistry,
-    App extends Goddo<InstanceContext, Routes>,
-  >(app: App) => {
+  return <App extends import('@goddo/types').AnyGoddo>(app: App) => {
     // Inject generateToken into context via derive
     const goddo = app.derive<{ csrfToken: () => string }>((context: Context) => {
       return {
@@ -36,7 +31,7 @@ export function csrf(options: CsrfOptions = {}) {
           let token = context.cookie[cookieName]?.value
           if (!token) {
             token = crypto.randomUUID()
-            const c = context.cookie[cookieName]
+            const c = context.cookie[cookieName]!
             c.value = token
             c.set(cookieOpts)
           }

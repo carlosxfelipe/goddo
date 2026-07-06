@@ -4,14 +4,14 @@ const req = (app: Goddo, path: string, init?: RequestInit) =>
   app.handle(new Request(`http://localhost${path}`, init))
 
 Deno.test('reads incoming cookies', async () => {
-  const app = new Goddo().get('/', ({ cookie }) => cookie.session.value ?? 'none')
+  const app = new Goddo().get('/', ({ cookie }) => cookie.session!.value ?? 'none')
   const res = await req(app, '/', { headers: { cookie: 'session=abc123' } })
 
   if ((await res.text()) !== 'abc123') throw new Error('cookie not read')
 })
 
 Deno.test('returns undefined for missing cookie', async () => {
-  const app = new Goddo().get('/', ({ cookie }) => cookie.missing.value ?? 'nope')
+  const app = new Goddo().get('/', ({ cookie }) => cookie.missing!.value ?? 'nope')
   const res = await req(app, '/')
 
   if ((await res.text()) !== 'nope') throw new Error('should be undefined')
@@ -19,7 +19,7 @@ Deno.test('returns undefined for missing cookie', async () => {
 
 Deno.test('sets a cookie on response', async () => {
   const app = new Goddo().get('/', ({ cookie }) => {
-    cookie.token.value = 'xyz'
+    cookie.token!.value = 'xyz'
     return 'ok'
   })
 
@@ -32,12 +32,12 @@ Deno.test('sets a cookie on response', async () => {
 
 Deno.test('sets cookie with attributes', async () => {
   const app = new Goddo().get('/', ({ cookie }) => {
-    cookie.session.value = 's1'
-    cookie.session.httpOnly = true
-    cookie.session.path = '/'
-    cookie.session.sameSite = 'lax'
-    cookie.session.secure = true
-    cookie.session.maxAge = 3600
+    cookie.session!.value = 's1'
+    cookie.session!.httpOnly = true
+    cookie.session!.path = '/'
+    cookie.session!.sameSite = 'lax'
+    cookie.session!.secure = true
+    cookie.session!.maxAge = 3600
     return 'ok'
   })
 
@@ -53,8 +53,8 @@ Deno.test('sets cookie with attributes', async () => {
 
 Deno.test('sets cookie attributes via .set()', async () => {
   const app = new Goddo().get('/', ({ cookie }) => {
-    cookie.token.value = 'v1'
-    cookie.token.set({ httpOnly: true, path: '/', maxAge: 7200 })
+    cookie.token!.value = 'v1'
+    cookie.token!.set({ httpOnly: true, path: '/', maxAge: 7200 })
     return 'ok'
   })
 
@@ -67,7 +67,7 @@ Deno.test('sets cookie attributes via .set()', async () => {
 
 Deno.test('removes a cookie', async () => {
   const app = new Goddo().get('/', ({ cookie }) => {
-    cookie.session.remove()
+    cookie.session!.remove()
     return 'removed'
   })
 
@@ -78,7 +78,7 @@ Deno.test('removes a cookie', async () => {
 })
 
 Deno.test('does not emit Set-Cookie for untouched cookies', async () => {
-  const app = new Goddo().get('/', ({ cookie }) => cookie.name.value ?? 'no')
+  const app = new Goddo().get('/', ({ cookie }) => cookie.name!.value ?? 'no')
 
   const res = await req(app, '/', { headers: { cookie: 'name=test' } })
   // Reading without modifying should NOT produce Set-Cookie headers,
@@ -91,7 +91,7 @@ Deno.test('does not emit Set-Cookie for untouched cookies', async () => {
 
 Deno.test('cookie validation rejects invalid cookies', async () => {
   const app = new Goddo()
-    .get('/', ({ cookie }) => cookie.session.value, {
+    .get('/', ({ cookie }) => cookie.session!.value, {
       cookie: t.Object({ session: t.String({ minLength: 1 }) }),
     })
     .onError(({ code }) => code === 'VALIDATION' ? 'invalid' : 'other')
@@ -104,7 +104,7 @@ Deno.test('cookie validation rejects invalid cookies', async () => {
 Deno.test('parses multiple cookies', async () => {
   const app = new Goddo().get(
     '/',
-    ({ cookie }) => `${cookie.a.value},${cookie.b.value},${cookie.c.value}`,
+    ({ cookie }) => `${cookie.a!.value},${cookie.b!.value},${cookie.c!.value}`,
   )
 
   const res = await req(app, '/', { headers: { cookie: 'a=1; b=2; c=3' } })
@@ -112,7 +112,7 @@ Deno.test('parses multiple cookies', async () => {
 })
 
 Deno.test('cookie parsing skips malformed segments', async () => {
-  const app = new Goddo().get('/', ({ cookie }) => cookie.valid.value ?? 'no')
+  const app = new Goddo().get('/', ({ cookie }) => cookie.valid!.value ?? 'no')
   // 'malformed' has no '=', should be skipped, 'valid=yes' should be parsed
   const res = await req(app, '/', { headers: { cookie: 'malformed; valid=yes' } })
   if ((await res.text()) !== 'yes') throw new Error('should parse valid segment')
@@ -121,6 +121,7 @@ Deno.test('cookie parsing skips malformed segments', async () => {
 Deno.test('Cookie proxy allows direct value assignment and iteration', async () => {
   const app = new Goddo().get('/', ({ cookie }) => {
     // Test proxy set trap
+    // @ts-expect-error - Testing proxy direct string assignment
     cookie.direct = 'assigned'
     // Test proxy has / ownKeys
     const keys = Object.keys(cookie)
@@ -134,12 +135,12 @@ Deno.test('Cookie proxy allows direct value assignment and iteration', async () 
 
 Deno.test('Cookie properties getter/setter coverage', async () => {
   const app = new Goddo().get('/', ({ cookie }) => {
-    cookie.test.value = 'val'
-    cookie.test.domain = 'example.com'
-    cookie.test.priority = 'high'
+    cookie.test!.value = 'val'
+    cookie.test!.domain = 'example.com'
+    cookie.test!.priority = 'high'
     // Also test isRemoved
-    cookie.deleted.remove()
-    if (!cookie.deleted.isRemoved) throw new Error('should be removed')
+    cookie.deleted!.remove()
+    if (!cookie.deleted!.isRemoved) throw new Error('should be removed')
     return 'ok'
   })
   const res = await req(app, '/')
@@ -152,13 +153,13 @@ Deno.test('Cookie properties getter/setter coverage', async () => {
 Deno.test('Signed Cookies: sign and verify with valid secret', async () => {
   const app = new Goddo({ cookieSecret: 'super-secret' })
     .get('/sign', async ({ cookie }) => {
-      cookie.auth.value = 'hello'
-      await cookie.auth.sign()
+      cookie.auth!.value = 'hello'
+      await cookie.auth!.sign()
       return 'ok'
     })
     .get('/verify', async ({ cookie }) => {
-      const isValid = await cookie.auth.verify()
-      return isValid ? cookie.auth.value : 'invalid'
+      const isValid = await cookie.auth!.verify()
+      return isValid ? cookie.auth!.value : 'invalid'
     })
 
   const res1 = await req(app, '/sign')
@@ -176,8 +177,8 @@ Deno.test('Signed Cookies: sign and verify with valid secret', async () => {
 Deno.test('Signed Cookies: verify fails with invalid signature', async () => {
   const app = new Goddo({ cookieSecret: 'super-secret' })
     .get('/verify', async ({ cookie }) => {
-      const isValid = await cookie.auth.verify()
-      return isValid ? cookie.auth.value : 'invalid'
+      const isValid = await cookie.auth!.verify()
+      return isValid ? cookie.auth!.value : 'invalid'
     })
 
   // Provide a tampered value (missing or wrong signature)
@@ -189,8 +190,8 @@ Deno.test('Signed Cookies: throws if no secret is configured', async () => {
   const app = new Goddo() // No secret
     .get('/sign', async ({ cookie }) => {
       try {
-        cookie.auth.value = 'hello'
-        await cookie.auth.sign()
+        cookie.auth!.value = 'hello'
+        await cookie.auth!.sign()
         return 'ok'
       } catch (e) {
         return (e as Error).message

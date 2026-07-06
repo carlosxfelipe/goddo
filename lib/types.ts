@@ -1,5 +1,9 @@
 import type { Context } from '@goddo/context'
 import type { Static, TSchema } from '@goddo/schema'
+import type { Goddo } from './index.ts'
+
+// deno-lint-ignore no-explicit-any
+export type AnyGoddo = Goddo<any, any>
 
 export type HTTPMethod =
   | 'GET'
@@ -15,8 +19,7 @@ export type HTTPMethod =
 
 export type MaybePromise<T> = T | Promise<T>
 
-// deno-lint-ignore no-explicit-any
-export type Handler<C = Context> = (context: C) => MaybePromise<any>
+export type Handler<C = Context> = (context: C) => MaybePromise<unknown>
 
 export type ResponseSchema = TSchema | Record<number | string, TSchema>
 
@@ -65,11 +68,11 @@ export interface LifeCycleStore {
 
 export type LifeCycleEvent = keyof LifeCycleStore
 
-// deno-lint-ignore no-explicit-any
-export type ErrorHandler = (context: Context & { error: Error; code: string }) => MaybePromise<any>
+export type ErrorHandler = (
+  context: Context & { error: Error; code: string },
+) => MaybePromise<unknown>
 
-// deno-lint-ignore no-explicit-any
-export type VoidHandler = (app: any) => MaybePromise<void>
+export type VoidHandler = (app: unknown) => MaybePromise<void>
 
 export interface DocumentDetail {
   summary?: string
@@ -82,8 +85,7 @@ export interface DocumentDetail {
 }
 
 /** Factory returned by a macro definition — returns lifecycle hooks to merge. */
-// deno-lint-ignore no-explicit-any
-export type MacroFactory = (value: any) => Partial<LocalHooks>
+export type MacroFactory = (value: unknown) => Partial<LocalHooks>
 
 export type MacroDefinitions = Record<string, MacroFactory>
 

@@ -1,4 +1,3 @@
-import { Goddo } from '../index.ts'
 import type { Context } from '../context.ts'
 
 export interface ShieldOptions {
@@ -33,11 +32,7 @@ export function shield(options: ShieldOptions = {}) {
     headers['Content-Security-Policy'] = options.contentSecurityPolicy
   }
 
-  return <
-    InstanceContext extends Record<string, unknown>,
-    Routes extends import('@goddo/types').RouteRegistry,
-    App extends Goddo<InstanceContext, Routes>,
-  >(app: App) =>
+  return <App extends import('@goddo/types').AnyGoddo>(app: App) =>
     app.onRequest((context: Context) => {
       for (const [key, value] of Object.entries(headers)) {
         if (!context.set.headers[key]) {

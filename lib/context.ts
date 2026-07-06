@@ -10,8 +10,7 @@ export interface SetContext {
 
 export interface Context<
   Params extends Record<string, string> = Record<string, string>,
-  // deno-lint-ignore no-explicit-any
-  Body = any,
+  Body = unknown,
   Store extends Record<string, unknown> = Record<string, unknown>,
 > {
   request: Request
