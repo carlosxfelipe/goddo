@@ -77,6 +77,7 @@ export interface DocumentDetail {
   tags?: string[]
   operationId?: string
   deprecated?: boolean
+  hide?: boolean
   [key: string]: unknown
 }
 

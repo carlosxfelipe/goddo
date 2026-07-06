@@ -279,9 +279,9 @@ when the token is invalid or expired.
 
 ## Docs with OpenAPI (`@goddo/openapi`)
 
-A plugin equivalent to `@elysiajs/openapi` (which uses Scalar under the hood): generates OpenAPI
-3.0.3 based on routes and `t` schemas, and serves the [Scalar](https://scalar.com) UI — using the
-exact same syntax as Elysia's plugin.
+A plugin equivalent to `@elysiajs/swagger`: generates OpenAPI 3.0.3 based on routes and `t` schemas,
+and serves either the modern [Scalar](https://scalar.com) UI (default) or the classic Swagger UI —
+using the exact same syntax as Elysia's plugin.
 
 ```ts
 import { Goddo, t } from 'goddo'
@@ -289,6 +289,7 @@ import { openapi } from '@goddo/openapi'
 
 new Goddo()
   .use(openapi({
+    provider: 'swagger-ui', // optional: switch to classic Swagger UI (default is 'scalar')
     documentation: { info: { title: 'My API', version: '1.0.0' } },
   }))
   .get('/user/:id', ({ params: { id } }) => id, {
@@ -300,9 +301,10 @@ new Goddo()
 // Spec: GET /docs/json
 ```
 
-Options: `path` (default `/docs`), `documentation` (base OpenAPI document), `detail` per route
-(`summary`, `description`, `tags`, ...), `exclude` (paths excluded from spec), `scalarConfig` and
-`version` (Scalar CDN version).
+Options: `path` (default `/docs`), `provider` (`'scalar' | 'swagger-ui'`), `documentation` (base
+OpenAPI document), `detail` per route (`summary`, `description`, `tags`, `hide`, ...), `exclude`
+(paths excluded from spec), `bearerAuth` (JWT config shortcut), `scalarConfig` and `version` (CDN
+version).
 
 ## AI Documentation (`@goddo/llms-txt`)
 

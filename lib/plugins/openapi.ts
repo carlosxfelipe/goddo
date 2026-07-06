@@ -17,6 +17,10 @@ export interface OpenAPIOptions {
   }
   /** Paths excluded from the specification */
   exclude?: (string | RegExp)[]
+  /** Helper to automatically configure JWT Bearer Auth in securitySchemes */
+  bearerAuth?: boolean
+  /** UI Provider to render the documentation. Default: 'scalar' */
+  provider?: 'scalar' | 'swagger-ui'
 }
 
 const toOpenAPIPath = (path: string): string =>
@@ -56,27 +60,62 @@ const buildPaths = (
       )
     ) continue
 
+    if (route.hooks.detail?.hide === true) continue
+
     const path = toOpenAPIPath(route.path)
     const { hooks } = route
 
-    const operation: Record<string, unknown> = { ...hooks.detail }
+    const { hide: _hide, ...detail } = hooks.detail ?? {}
+    const operation: Record<string, unknown> = { ...detail }
+
+    if (!operation.tags) {
+      const tag = route.path.split('/')[1]
+      if (tag && tag !== '*' && !tag.startsWith(':')) {
+        operation.tags = [tag.charAt(0).toUpperCase() + tag.slice(1)]
+      }
+    }
 
     const parameters = [
       ...paramsIn(hooks.params, 'path'),
       ...paramsIn(hooks.query, 'query'),
       ...paramsIn(hooks.headers, 'header'),
     ]
-    if (parameters.length > 0) operation.parameters = parameters
 
-    if (hooks.body) {
-      operation.requestBody = {
-        required: true,
-        content: { 'application/json': { schema: toJSONSchema(hooks.body) } },
+    const pathParams = route.path.split('/')
+      .filter((s) => s.startsWith(':') || s === '*')
+      .map((s) => s === '*' ? 'wildcard' : s.slice(1))
+
+    for (const p of pathParams) {
+      if (
+        !parameters.some((param: Record<string, unknown>) =>
+          param.name === p && param.in === 'path'
+        )
+      ) {
+        parameters.push({
+          name: p,
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        })
       }
     }
 
+    if (operation.parameters) {
+      operation.parameters = [...parameters, ...(operation.parameters as unknown[])]
+    } else if (parameters.length > 0) {
+      operation.parameters = parameters
+    }
+
+    if (hooks.body) {
+      const contentType = typeof hooks.type === 'string' ? hooks.type : 'application/json'
+      operation.requestBody = {
+        required: true,
+        content: { [contentType]: { schema: toJSONSchema(hooks.body) } },
+      }
+    }
+
+    const responses: Record<string, unknown> = {}
     if (hooks.response) {
-      const responses: Record<string, unknown> = {}
       if (typeof hooks.response === 'object' && !('type' in hooks.response)) {
         for (const [status, schema] of Object.entries(hooks.response)) {
           responses[status] = {
@@ -98,9 +137,19 @@ const buildPaths = (
           },
         }
       }
-      operation.responses = responses
     } else {
-      operation.responses = { 200: { description: 'OK' } }
+      responses['200'] = { description: 'OK' }
+    }
+
+    if (hooks.body || hooks.query || hooks.params || hooks.headers) {
+      if (!responses['400']) {
+        responses['400'] = { description: 'Bad Request (Validation Error)' }
+      }
+    }
+    if (operation.responses) {
+      operation.responses = { ...responses, ...(operation.responses as Record<string, unknown>) }
+    } else {
+      operation.responses = responses
     }
 
     if (!paths[path]) paths[path] = {}
@@ -109,6 +158,29 @@ const buildPaths = (
 
   return paths
 }
+
+const swaggerHTML = (specUrl: string, title: string, version: string): string =>
+  `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${title}</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@${version}/swagger-ui.css" />
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@${version}/swagger-ui-bundle.js" crossorigin></script>
+    <script>
+      window.onload = () => {
+        window.ui = SwaggerUIBundle({
+          url: '${specUrl}',
+          dom_id: '#swagger-ui',
+        });
+      };
+    </script>
+  </body>
+</html>`
 
 const scalarHTML = (specUrl: string, title: string, version: string, config: unknown): string =>
   `<!doctype html>
@@ -153,14 +225,35 @@ export const openapi = (options: OpenAPIOptions = {}) => (app: Goddo): Goddo => 
   }
   const exclude = [...(options.exclude ?? []), path, specPath]
 
+  const documentation = { ...options.documentation }
+  if (options.bearerAuth) {
+    documentation.components = {
+      ...(documentation.components as object ?? {}),
+      securitySchemes: {
+        ...(((documentation.components as Record<string, unknown>)?.securitySchemes as object) ??
+          {}),
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    }
+  }
+
   return app
     .get(path, ({ set }) => {
       set.headers['content-type'] = 'text/html; charset=utf-8'
-      return scalarHTML(specPath, info.title, version, options.scalarConfig)
+      if (options.provider === 'swagger-ui') {
+        const uiVersion = options.version ?? '5.17.14'
+        return swaggerHTML(specPath, info.title, uiVersion)
+      }
+      const uiVersion = options.version ?? 'latest'
+      return scalarHTML(specPath, info.title, uiVersion, options.scalarConfig)
     })
     .get(specPath, () => ({
       openapi: '3.0.3',
-      ...options.documentation,
+      ...documentation,
       info,
       paths: buildPaths(app.routes, exclude),
     }))
