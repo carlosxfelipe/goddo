@@ -224,3 +224,26 @@ Deno.test('macro expands custom route options into hooks', async () => {
   const allowed = await req(app, '/secret', { headers: { authorization: 'Bearer x' } })
   if ((await allowed.text()) !== 'secret') throw new Error('macro auth should allow')
 })
+
+Deno.test('onCleanup runs during teardown', async () => {
+  let cleaned = 0
+  const app = new Goddo()
+    .derive(({ onCleanup }) => {
+      onCleanup(() => {
+        cleaned++
+      })
+      return { db: true }
+    })
+    .get('/', ({ db, onCleanup }) => {
+      if (!db) throw new Error('Derive failed')
+      onCleanup(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10))
+        cleaned++
+      })
+      return 'ok'
+    })
+
+  const res = await req(app, '/')
+  if (await res.text() !== 'ok') throw new Error('Response mismatch')
+  if (cleaned !== 2) throw new Error(`Cleanups should be 2, got ${cleaned}`)
+})

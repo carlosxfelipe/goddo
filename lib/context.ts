@@ -26,6 +26,8 @@ export interface Context<
   store: Store
   error: (status: number, message?: string) => GoddoError
   redirect: (url: string, status?: number) => Response
+  onCleanup: (fn: () => void | Promise<void>) => void
+  _cleanups?: (() => void | Promise<void>)[]
 }
 
 export const createContext = (
@@ -47,6 +49,7 @@ export const createContext = (
   }
 
   const cookie = new CookieJar(request.headers.get('cookie'), cookieSecret) as CookieProxy
+  const cleanups: (() => void | Promise<void>)[] = []
 
   return {
     request,
@@ -70,6 +73,8 @@ export const createContext = (
         status,
         headers: { location },
       }),
+    onCleanup: (fn: () => void | Promise<void>) => cleanups.push(fn),
+    _cleanups: cleanups,
   }
 }
 

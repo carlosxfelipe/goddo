@@ -649,6 +649,13 @@ export class Goddo<
       }
 
       return new Response(error.message, { status })
+    } finally {
+      if (context._cleanups) {
+        for (const fn of context._cleanups) {
+          const res = fn()
+          if (res instanceof Promise) await res.catch(console.error)
+        }
+      }
     }
   }
 

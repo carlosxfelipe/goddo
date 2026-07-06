@@ -2,7 +2,10 @@
 
 > _Goddo Kurosu – God Cloths_
 
-An ergonomic web framework for **Deno**, engineered to recreate the [ElysiaJS](https://elysiajs.com) syntax with a **1:1 Developer Experience (DX)**. Enjoy End-to-End Type Safety, seamless autocompletion, and an incredibly intuitive API — **zero npm dependencies**, built exclusively with native Deno and Web Platform APIs.
+An ergonomic web framework for **Deno**, engineered to recreate the [ElysiaJS](https://elysiajs.com)
+syntax with a **1:1 Developer Experience (DX)**. Enjoy End-to-End Type Safety, seamless
+autocompletion, and an incredibly intuitive API — **zero npm dependencies**, built exclusively with
+native Deno and Web Platform APIs.
 
 ## Requirements
 
@@ -221,6 +224,25 @@ new Goddo()
     user: await getUser(headers.authorization),
   }))
   .get('/me', ({ user }) => user.name)
+```
+
+**`onCleanup`** registers a teardown function that runs asynchronously in the `finally` block
+**after** the request finishes. *(Inspired by FastAPI's `yield` and Hono's `onCleanup`).*
+
+This is perfect for cleaning up **request-scoped resources** like database transactions,
+temporary files, or observability spans:
+
+```ts
+new Goddo()
+  .derive(({ onCleanup }) => {
+    // Start a database transaction scoped to this request
+    const tx = db.transaction()
+    
+    // Ensure the transaction is rolled back/released when the request ends
+    onCleanup(() => tx.release())
+    
+    return { tx }
+  })
 ```
 
 ## Macro
@@ -462,8 +484,9 @@ new Goddo()
 ## Treaty (`@goddo/treaty`)
 
 A type-safe HTTP client generated at compile time from your app's route types — the Goddo equivalent
-of [Elysia Eden](https://elysiajs.com/eden/treaty/overview.html), delivering an unmatched **Developer Experience (DX)**. No code generation: everything is
-inferred via deep TypeScript generics and a runtime `Proxy` to give you perfect end-to-end autocompletion.
+of [Elysia Eden](https://elysiajs.com/eden/treaty/overview.html), delivering an unmatched
+**Developer Experience (DX)**. No code generation: everything is inferred via deep TypeScript
+generics and a runtime `Proxy` to give you perfect end-to-end autocompletion.
 
 ### Setup
 
@@ -647,9 +670,10 @@ formatter. To use Deno's formatter automatically on save, add the following to y
 
 ## Testing & Coverage
 
-Goddo is thoroughly tested to ensure high reliability and stability in production. The framework is
-backed by a robust suite of **over 160 unit tests**, maintaining exceptionally high code coverage
-across all core routing, parsing, validation, and plugin features.
+Goddo is built with reliability in mind, backed by a robust suite of **over 180 unit tests**
+covering core routing, parsing, validation, and plugin features. While it is highly capable,
+extremely fast, and deeply typed, it is a new framework; we encourage you to test it thoroughly for
+your specific use cases before large-scale production deployments.
 
 ## License
 

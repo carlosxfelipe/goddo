@@ -149,6 +149,7 @@ export const compileRoutes = (
     private _headersCache?: Record<string, string>
     private _jar?: CookieJar
     private _cookieCache?: CookieProxy
+    _cleanups?: (() => void | Promise<void>)[]
 
     constructor(
       request: Request,
@@ -209,9 +210,14 @@ export const compileRoutes = (
     getJar() {
       return this._jar
     }
-    setJar(j: CookieJar) {
-      this._jar = j
-      this._cookieCache = j as unknown as CookieProxy
+    setJar(jar: CookieJar) {
+      this._jar = jar
+      this._cookieCache = undefined
+    }
+
+    onCleanup(fn: () => void | Promise<void>) {
+      if (!this._cleanups) this._cleanups = []
+      this._cleanups.push(fn)
     }
 
     error(status: number, message?: string) {
@@ -419,6 +425,13 @@ export const compileRoutes = (
       }
 
       return new Response(error.message, { status })
+    } finally {
+      if (context._cleanups) {
+        for (const fn of context._cleanups) {
+          const res = fn()
+          if (res instanceof Promise) await res.catch(console.error)
+        }
+      }
     }
   }
 }
