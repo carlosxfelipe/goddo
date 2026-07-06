@@ -15,6 +15,7 @@ export interface Context<
   Store extends Record<string, unknown> = Record<string, unknown>,
 > {
   request: Request
+  server: Deno.ServeHandlerInfo | null
   path: string
   method: string
   params: Params
@@ -31,6 +32,8 @@ export interface Context<
 export const createContext = (
   request: Request,
   store: Record<string, unknown>,
+  info: Deno.ServeHandlerInfo | null = null,
+  cookieSecret?: string,
 ): Context => {
   const url = new URL(request.url)
 
@@ -44,10 +47,11 @@ export const createContext = (
     headers: {},
   }
 
-  const cookie = new CookieJar(request.headers.get('cookie')) as CookieProxy
+  const cookie = new CookieJar(request.headers.get('cookie'), cookieSecret) as CookieProxy
 
   return {
     request,
+    server: info,
     path: url.pathname,
     method: request.method,
     params: {},

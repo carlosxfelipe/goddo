@@ -1,5 +1,6 @@
 import { Router } from '@goddo/router'
 import { createContext, parseBody } from '@goddo/context'
+import type { Context } from '@goddo/context'
 import { mapResponse } from '@goddo/handler'
 import { GoddoError, NotFoundError } from '@goddo/error'
 import { validate } from '@goddo/schema'
@@ -29,7 +30,10 @@ const toArray = <T>(value?: T | T[]): T[] => {
   return Array.isArray(value) ? value : [value]
 }
 
-export class Goddo<Routes extends RouteRegistry = Record<never, never>> {
+export class Goddo<
+  InstanceContext extends Record<string, unknown> = Record<never, never>,
+  Routes extends RouteRegistry = Record<never, never>,
+> {
   /**
    * @internal Phantom type — holds the accumulated route registry.
    * Never assigned at runtime; used exclusively for Treaty type inference.
@@ -114,74 +118,74 @@ export class Goddo<Routes extends RouteRegistry = Record<never, never>> {
 
   get<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
-    handler: Handler<InferContext<S, Path>>,
+    handler: Handler<InferContext<S, Path> & InstanceContext>,
     hooks?: S,
-  ): Goddo<AddRoute<Routes, 'GET', Path, S>> {
+  ): Goddo<InstanceContext, AddRoute<Routes, 'GET', Path, S>> {
     this.add('GET', path, handler as Handler, hooks)
-    return this as unknown as Goddo<AddRoute<Routes, 'GET', Path, S>>
+    return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'GET', Path, S>>
   }
 
   post<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
-    handler: Handler<InferContext<S, Path>>,
+    handler: Handler<InferContext<S, Path> & InstanceContext>,
     hooks?: S,
-  ): Goddo<AddRoute<Routes, 'POST', Path, S>> {
+  ): Goddo<InstanceContext, AddRoute<Routes, 'POST', Path, S>> {
     this.add('POST', path, handler as Handler, hooks)
-    return this as unknown as Goddo<AddRoute<Routes, 'POST', Path, S>>
+    return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'POST', Path, S>>
   }
 
   put<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
-    handler: Handler<InferContext<S, Path>>,
+    handler: Handler<InferContext<S, Path> & InstanceContext>,
     hooks?: S,
-  ): Goddo<AddRoute<Routes, 'PUT', Path, S>> {
+  ): Goddo<InstanceContext, AddRoute<Routes, 'PUT', Path, S>> {
     this.add('PUT', path, handler as Handler, hooks)
-    return this as unknown as Goddo<AddRoute<Routes, 'PUT', Path, S>>
+    return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'PUT', Path, S>>
   }
 
   delete<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
-    handler: Handler<InferContext<S, Path>>,
+    handler: Handler<InferContext<S, Path> & InstanceContext>,
     hooks?: S,
-  ): Goddo<AddRoute<Routes, 'DELETE', Path, S>> {
+  ): Goddo<InstanceContext, AddRoute<Routes, 'DELETE', Path, S>> {
     this.add('DELETE', path, handler as Handler, hooks)
-    return this as unknown as Goddo<AddRoute<Routes, 'DELETE', Path, S>>
+    return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'DELETE', Path, S>>
   }
 
   patch<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
-    handler: Handler<InferContext<S, Path>>,
+    handler: Handler<InferContext<S, Path> & InstanceContext>,
     hooks?: S,
-  ): Goddo<AddRoute<Routes, 'PATCH', Path, S>> {
+  ): Goddo<InstanceContext, AddRoute<Routes, 'PATCH', Path, S>> {
     this.add('PATCH', path, handler as Handler, hooks)
-    return this as unknown as Goddo<AddRoute<Routes, 'PATCH', Path, S>>
+    return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'PATCH', Path, S>>
   }
 
   head<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
-    handler: Handler<InferContext<S, Path>>,
+    handler: Handler<InferContext<S, Path> & InstanceContext>,
     hooks?: S,
-  ): Goddo<AddRoute<Routes, 'HEAD', Path, S>> {
+  ): Goddo<InstanceContext, AddRoute<Routes, 'HEAD', Path, S>> {
     this.add('HEAD', path, handler as Handler, hooks)
-    return this as unknown as Goddo<AddRoute<Routes, 'HEAD', Path, S>>
+    return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'HEAD', Path, S>>
   }
 
   options<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
-    handler: Handler<InferContext<S, Path>>,
+    handler: Handler<InferContext<S, Path> & InstanceContext>,
     hooks?: S,
-  ): Goddo<AddRoute<Routes, 'OPTIONS', Path, S>> {
+  ): Goddo<InstanceContext, AddRoute<Routes, 'OPTIONS', Path, S>> {
     this.add('OPTIONS', path, handler as Handler, hooks)
-    return this as unknown as Goddo<AddRoute<Routes, 'OPTIONS', Path, S>>
+    return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'OPTIONS', Path, S>>
   }
 
   all<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
-    handler: Handler<InferContext<S, Path>>,
+    handler: Handler<InferContext<S, Path> & InstanceContext>,
     hooks?: S,
-  ): Goddo<AddRoute<Routes, 'ALL', Path, S>> {
+  ): Goddo<InstanceContext, AddRoute<Routes, 'ALL', Path, S>> {
     this.add('ALL', path, handler as Handler, hooks)
-    return this as unknown as Goddo<AddRoute<Routes, 'ALL', Path, S>>
+    return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'ALL', Path, S>>
   }
 
   /**
@@ -263,21 +267,24 @@ export class Goddo<Routes extends RouteRegistry = Record<never, never>> {
   route<const M extends HTTPMethod, const Path extends string, const S extends LocalHooks>(
     method: M,
     path: Path,
-    handler: Handler<InferContext<S, Path>>,
+    handler: Handler<InferContext<S, Path> & InstanceContext>,
     hooks?: S,
-  ): Goddo<AddRoute<Routes, M, Path, S>> {
+  ): Goddo<InstanceContext, AddRoute<Routes, M, Path, S>> {
     this.add(method, path, handler as Handler, hooks)
-    return this as unknown as Goddo<AddRoute<Routes, M, Path, S>>
+    return this as unknown as Goddo<InstanceContext, AddRoute<Routes, M, Path, S>>
   }
 
-  state(key: string, value: unknown): this {
+  state<K extends string, V>(key: K, value: V): Goddo<InstanceContext & { [key in K]: V }, Routes> {
     this.store[key] = value
-    return this
+    return this as unknown as Goddo<InstanceContext & { [key in K]: V }, Routes>
   }
 
-  decorate(key: string, value: unknown): this {
+  decorate<K extends string, V>(
+    key: K,
+    value: V,
+  ): Goddo<InstanceContext & { [key in K]: V }, Routes> {
     this.decorators[key] = value
-    return this
+    return this as unknown as Goddo<InstanceContext & { [key in K]: V }, Routes>
   }
 
   /**
@@ -301,14 +308,18 @@ export class Goddo<Routes extends RouteRegistry = Record<never, never>> {
   }
 
   /** Merge a typed Goddo plugin instance, accumulating its routes in the type. */
-  use<PluginRoutes extends RouteRegistry>(plugin: Goddo<PluginRoutes>): Goddo<Routes & PluginRoutes>
-  /** Register a function plugin. Routes added by the plugin are not type-tracked. */
-  use(plugin: (app: Goddo) => Goddo): this
-  // deno-lint-ignore no-explicit-any
-  use(plugin: any): any {
+  use<PluginContext extends Record<string, unknown>, PluginRoutes extends RouteRegistry>(
+    plugin: Goddo<PluginContext, PluginRoutes>,
+  ): Goddo<InstanceContext & PluginContext, Routes & PluginRoutes>
+  /** Register a function plugin. Propagates the plugin's context and route modifications. */
+  use<
+    PluginContext extends Record<string, unknown>,
+    PluginRoutes extends RouteRegistry,
+    PluginApp extends Goddo<PluginContext, PluginRoutes>,
+  >(plugin: (app: this) => PluginApp): PluginApp
+  use(plugin: unknown): unknown {
     if (typeof plugin === 'function') {
-      plugin(this)
-      return this
+      return (plugin as (app: this) => unknown)(this)
     }
 
     const instance = plugin as Goddo
@@ -414,9 +425,11 @@ export class Goddo<Routes extends RouteRegistry = Record<never, never>> {
    * }))
    * ```
    */
-  derive(handler: Handler): this {
-    this.event.derive.push(handler)
-    return this
+  derive<Returned extends Record<string, unknown>>(
+    handler: Handler<Context & InstanceContext>,
+  ): Goddo<InstanceContext & Returned, Routes> {
+    this.event.derive.push(handler as Handler)
+    return this as unknown as Goddo<InstanceContext & Returned, Routes>
   }
 
   /**
@@ -429,43 +442,47 @@ export class Goddo<Routes extends RouteRegistry = Record<never, never>> {
    * }))
    * ```
    */
-  resolve(handler: Handler): this {
-    this.event.resolve.push(handler)
+  resolve<Returned extends Record<string, unknown>>(
+    handler: Handler<Context & InstanceContext>,
+  ): Goddo<InstanceContext & Returned, Routes> {
+    this.event.resolve.push(handler as Handler)
+    return this as unknown as Goddo<InstanceContext & Returned, Routes>
+  }
+
+  onRequest(handler: Handler<Context & InstanceContext>): this {
+    this.event.request.push(handler as Handler)
     return this
   }
 
-  onRequest(handler: Handler): this {
-    this.event.request.push(handler)
+  onParse(handler: Handler<Context & InstanceContext>): this {
+    this.event.parse.push(handler as Handler)
     return this
   }
 
-  onParse(handler: Handler): this {
-    this.event.parse.push(handler)
+  onTransform(handler: Handler<Context & InstanceContext>): this {
+    this.event.transform.push(handler as Handler)
     return this
   }
 
-  onTransform(handler: Handler): this {
-    this.event.transform.push(handler)
+  onBeforeHandle(handler: Handler<Context & InstanceContext>): this {
+    this.event.beforeHandle.push(handler as Handler)
     return this
   }
 
-  onBeforeHandle(handler: Handler): this {
-    this.event.beforeHandle.push(handler)
+  onAfterHandle(handler: Handler<Context & InstanceContext & { response: unknown }>): this {
+    this.event.afterHandle.push(handler as Handler)
     return this
   }
 
-  onAfterHandle(handler: Handler): this {
-    this.event.afterHandle.push(handler)
+  onAfterResponse(handler: Handler<Context & InstanceContext & { response: Response }>): this {
+    this.event.afterResponse.push(handler as Handler)
     return this
   }
 
-  onAfterResponse(handler: Handler): this {
-    this.event.afterResponse.push(handler)
-    return this
-  }
-
-  onError(handler: ErrorHandler): this {
-    this.event.error.push(handler)
+  onError(
+    handler: (context: Context & InstanceContext & { error: Error; code: string }) => unknown,
+  ): this {
+    this.event.error.push(handler as ErrorHandler)
     return this
   }
 
@@ -488,15 +505,21 @@ export class Goddo<Routes extends RouteRegistry = Record<never, never>> {
       this.decorators,
       this.router,
       this.event.error,
+      Array.isArray(this.config.cookieSecret)
+        ? this.config.cookieSecret[0]
+        : this.config.cookieSecret,
     )
     return this
   }
 
-  handle = async (request: Request): Promise<Response> => {
+  handle = async (request: Request, info?: Deno.ServeHandlerInfo | null): Promise<Response> => {
     // Use compiled handler if available (AOT fast path)
-    if (this.compiledHandler) return this.compiledHandler(request)
+    if (this.compiledHandler) return this.compiledHandler(request, info)
 
-    const context = createContext(request, this.store)
+    const secret = Array.isArray(this.config.cookieSecret)
+      ? this.config.cookieSecret[0]
+      : this.config.cookieSecret
+    const context = createContext(request, this.store, info, secret)
     Object.assign(context, this.decorators)
 
     try {
@@ -680,7 +703,7 @@ export { compileRoutes } from '@goddo/compile'
 export type { CompiledHandler, CompiledRoute } from '@goddo/compile'
 export { Cookie, CookieJar } from '@goddo/cookie'
 export type { CookieProxy } from '@goddo/cookie'
-export type { Context } from '@goddo/context'
+export type { Context }
 export { GoddoWebSocket } from '@goddo/ws'
 export type { TopicMap, WSOptions } from '@goddo/ws'
 export type {

@@ -60,7 +60,10 @@ export interface CompiledRoute {
   }
 }
 
-export type CompiledHandler = (request: Request) => Promise<Response>
+export type CompiledHandler = (
+  request: Request,
+  info?: Deno.ServeHandlerInfo | null,
+) => Promise<Response>
 
 /**
  * Compile all routes of a Goddo instance into optimized handler functions.
@@ -75,6 +78,7 @@ export const compileRoutes = (
   decorators: Record<string, unknown>,
   router: { find(method: HTTPMethod, path: string): RouteMatch | null },
   errorHooks: ((ctx: Context & { error: Error; code: string }) => unknown)[],
+  cookieSecret?: string,
 ): CompiledHandler => {
   // Pre-merge hooks for each route
   const compiledRoutes: CompiledRoute[] = routes.map((route) => {
@@ -131,6 +135,7 @@ export const compileRoutes = (
 
   class GoddoContext implements Context {
     request: Request
+    server: Deno.ServeHandlerInfo | null
     path: string
     method: string
     params: Record<string, string> = {}
@@ -153,8 +158,10 @@ export const compileRoutes = (
       pathEnd: number,
       set: SetContext,
       store: Record<string, unknown>,
+      info: Deno.ServeHandlerInfo | null,
     ) {
       this.request = request
+      this.server = info
       this.path = path
       this.method = method
       this._urlStr = urlStr
@@ -190,7 +197,7 @@ export const compileRoutes = (
 
     get cookie() {
       if (!this._jar) {
-        this._jar = new CookieJar(this.request.headers.get('cookie'))
+        this._jar = new CookieJar(this.request.headers.get('cookie'), cookieSecret)
         this._cookieCache = this._jar as unknown as CookieProxy
       }
       return this._cookieCache!
@@ -219,7 +226,7 @@ export const compileRoutes = (
   }
 
   // The compiled handler
-  return async (request: Request): Promise<Response> => {
+  return async (request: Request, info: Deno.ServeHandlerInfo | null = null): Promise<Response> => {
     const urlStr = request.url
     const method = request.method as HTTPMethod
 
@@ -237,7 +244,7 @@ export const compileRoutes = (
     // Build set
     const set: SetContext = { headers: {} }
 
-    const context = new GoddoContext(request, path, method, urlStr, pathEnd, set, store)
+    const context = new GoddoContext(request, path, method, urlStr, pathEnd, set, store, info)
     Object.assign(context, decorators)
 
     try {
@@ -326,7 +333,7 @@ export const compileRoutes = (
       if (c.hasCookie) {
         let jar = context.getJar()
         if (!jar) {
-          jar = new CookieJar(request.headers.get('cookie'))
+          jar = new CookieJar(request.headers.get('cookie'), cookieSecret)
           context.setJar(jar)
         }
         const cookieObj: Record<string, string | undefined> = {}

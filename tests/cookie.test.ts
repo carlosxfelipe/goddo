@@ -148,3 +148,56 @@ Deno.test('Cookie properties getter/setter coverage', async () => {
   if (!testCookie?.includes('Domain=example.com')) throw new Error('missing domain')
   if (!testCookie?.includes('Priority=High')) throw new Error('missing priority')
 })
+
+Deno.test('Signed Cookies: sign and verify with valid secret', async () => {
+  const app = new Goddo({ cookieSecret: 'super-secret' })
+    .get('/sign', async ({ cookie }) => {
+      cookie.auth.value = 'hello'
+      await cookie.auth.sign()
+      return 'ok'
+    })
+    .get('/verify', async ({ cookie }) => {
+      const isValid = await cookie.auth.verify()
+      return isValid ? cookie.auth.value : 'invalid'
+    })
+
+  const res1 = await req(app, '/sign')
+  const setCookies = res1.headers.getSetCookie()
+  const authCookie = setCookies.find((c) => c.startsWith('auth='))
+  if (!authCookie) throw new Error('cookie not set')
+
+  // Extract just the cookie string without attributes for the second request
+  const cookieStr = authCookie.split(';')[0]
+
+  const res2 = await req(app, '/verify', { headers: { cookie: cookieStr ?? '' } })
+  if ((await res2.text()) !== 'hello') throw new Error('signature verification failed')
+})
+
+Deno.test('Signed Cookies: verify fails with invalid signature', async () => {
+  const app = new Goddo({ cookieSecret: 'super-secret' })
+    .get('/verify', async ({ cookie }) => {
+      const isValid = await cookie.auth.verify()
+      return isValid ? cookie.auth.value : 'invalid'
+    })
+
+  // Provide a tampered value (missing or wrong signature)
+  const res = await req(app, '/verify', { headers: { cookie: 'auth=hello.badsignature' } })
+  if ((await res.text()) !== 'invalid') throw new Error('should reject invalid signature')
+})
+
+Deno.test('Signed Cookies: throws if no secret is configured', async () => {
+  const app = new Goddo() // No secret
+    .get('/sign', async ({ cookie }) => {
+      try {
+        cookie.auth.value = 'hello'
+        await cookie.auth.sign()
+        return 'ok'
+      } catch (e) {
+        return (e as Error).message
+      }
+    })
+
+  const res = await req(app, '/sign')
+  const text = await res.text()
+  if (!text.includes('cookieSecret is not configured')) throw new Error('should throw error')
+})

@@ -162,6 +162,24 @@ Cookie schemas can be validated using `t`:
 })
 ```
 
+### Signed Cookies
+
+Cookies can be automatically signed and verified using the native Web Crypto API (HMAC-SHA256) by
+setting a `cookieSecret` in the `GoddoConfig`:
+
+```ts
+const app = new Goddo({ cookieSecret: 'my-super-secret' })
+  .get('/sign', async ({ cookie }) => {
+    cookie.auth.value = 'user_id_123'
+    await cookie.auth.sign()
+    return 'Cookie signed!'
+  })
+  .get('/verify', async ({ cookie }) => {
+    const isValid = await cookie.auth.verify()
+    return isValid ? `Hello ${cookie.auth.value}` : 'Invalid signature'
+  })
+```
+
 ## Guard
 
 Apply shared hooks and schemas to a group of routes:
@@ -305,6 +323,43 @@ Options: `path` (default `/docs`), `provider` (`'scalar' | 'swagger-ui'`), `docu
 OpenAPI document), `detail` per route (`summary`, `description`, `tags`, `hide`, ...), `exclude`
 (paths excluded from spec), `bearerAuth` (JWT config shortcut), `scalarConfig` and `version` (CDN
 version).
+
+## Security Plugins
+
+Goddo includes out-of-the-box plugins to secure your application:
+
+### Rate Limiting (`@goddo/rate-limit`)
+
+Protects your endpoints from abuse by limiting requests per IP address. Goddo automatically captures
+the client IP via `Deno.ServeHandlerInfo`.
+
+```ts
+import { rateLimit } from '@goddo/rate-limit'
+
+app.use(rateLimit({ max: 100, windowMs: 60000 })) // Max 100 requests per minute
+```
+
+### Shield (`@goddo/shield`)
+
+Automatically injects standard HTTP security headers (like `X-Frame-Options`,
+`X-Content-Type-Options`, `Strict-Transport-Security`, etc.).
+
+```ts
+import { shield } from '@goddo/shield'
+
+app.use(shield())
+```
+
+### CSRF Protection (`@goddo/csrf`)
+
+Implements the Double Submit Cookie pattern to protect mutating endpoints from Cross-Site Request
+Forgery.
+
+```ts
+import { csrf } from '@goddo/csrf'
+
+app.use(csrf())
+```
 
 ## AI Documentation (`@goddo/llms-txt`)
 
@@ -543,13 +598,6 @@ deno task bench
 Benchmarks cover router lookup (static, parametric, wildcard, 404), compiled handler throughput
 (GET, POST with validation), compilation overhead, and a compiled-vs-uncompiled comparison.
 
-## Future Enhancements (Backlog)
-
-- **Advanced Type Chaining**: Implement deep TypeScript inference via generic classes
-  (`class Goddo<Context>`) for `.derive`, `.resolve`, and `.state` to automatically propagate
-  context types through the middleware chain.
-- **Signed Cookies**: Built-in support for cookie signature and verification (HMAC-SHA256).
-
 ## API Collections
 
 This project includes API collections for [Bruno](https://www.usebruno.com/), an open-source IDE for
@@ -589,58 +637,14 @@ formatter. To use Deno's formatter automatically on save, add the following to y
 
 ## Structure
 
-```
-src/                 # Demo application
-  index.ts           # Entry point — starts the server
-  app.tsx            # Goddo instance, routes and plugins
-bruno/               # Bruno API collections for testing the demo app (src/)
-lib/                 # Framework core
-  index.ts           # Goddo Class + public exports
-  router.ts          # Radix tree router
-  context.ts         # Context + body parsing
-  cookie.ts          # Reactive CookieJar (proxy-based)
-  handler.ts         # Response mapping
-  types.ts           # Shared types + inference (InferContext)
-  error.ts           # Errors (GoddoError, NotFoundError, ...)
-  schema.ts          # t module (TypeBox-style schemas) + validate + toJSONSchema
-  compile.ts         # AOT route compilation (sucrose, pre-merged hooks, static map)
-  ws.ts              # WebSocket support (Deno.upgradeWebSocket)
-  plugins/
-    html/            # Native JSX-to-HTML Server-Side Rendering
-    openapi.ts       # OpenAPI Docs + Scalar UI / Swagger UI
-    llms-txt.ts      # AI Documentation endpoint (/llms.txt)
-    cors.ts          # CORS middleware
-    static.ts        # Static file server
-    jwt.ts           # JWT sign/verify (Web Crypto API)
-    bearer.ts        # Bearer token extraction (RFC 6750)
-    cron.ts          # Task scheduling (zero-dependency cron parser)
-    server-timing.ts # Server-Timing header (per-phase durations)
-    treaty.ts        # Goddo Treaty — type-safe HTTP client
-scripts/             # Setup and utility scripts
-  init.ts            # Bootstraps a new Goddo app (deno task init)
-tests/
-  _reserved_segment_check.ts
-  bearer.test.ts
-  compile.test.ts
-  cookie.test.ts
-  cors.test.ts
-  cron.test.ts
-  error.test.ts
-  fixtures/          # Test fixtures and mock files
-  goddo.test.ts
-  handler.test.ts
-  html.test.tsx
-  jwt.test.ts
-  llms-txt.test.ts
-  openapi.test.ts
-  schema.test.ts
-  server-timing.test.ts
-  static.test.ts
-  treaty.test.ts
-  ws.test.ts
-benchmarks/
-  goddo.bench.ts     # Router lookup, handler throughput, compilation overhead
-```
+- **`src/`** — Demo application serving as an example of how to use Goddo.
+- **`lib/`** — Framework core containing routing, context, validation, and all built-in features.
+  - **`lib/plugins/`** — Official built-in plugins (like HTML, OpenAPI, CORS, Rate Limit, etc.).
+- **`bruno/`** — Bruno API collections for testing the demo application endpoints.
+- **`tests/`** — Comprehensive test suite for the Goddo core and all its plugins.
+- **`scripts/`** — Setup and utility scripts (like the bootstrap script for new apps).
+- **`benchmarks/`** — Performance benchmarks for router lookup, handler throughput, and compilation
+  overhead.
 
 ## Testing & Coverage
 

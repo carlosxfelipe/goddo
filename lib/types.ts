@@ -116,6 +116,7 @@ export interface ListenOptions {
 export interface GoddoConfig {
   name?: string
   prefix?: string
+  cookieSecret?: string | string[]
 }
 
 // ---------------------------------------------------------------------------
