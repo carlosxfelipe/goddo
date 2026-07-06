@@ -1,5 +1,7 @@
 # Goddo 🛡️
 
+[![JSR](https://jsr.io/badges/@goddo/core)](https://jsr.io/@goddo)
+
 > _Goddo Kurosu – God Cloths_
 
 An ergonomic web framework for **Deno**, engineered to recreate the [ElysiaJS](https://elysiajs.com)
@@ -12,6 +14,42 @@ native Deno and Web Platform APIs.
 - [Deno](https://deno.land/) installed on your system.
 - [Deno extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno) for VS
   Code (recommended).
+
+## Installation
+
+Goddo and its plugins are published on the [JSR registry](https://jsr.io/@goddo) under the `@goddo`
+scope.
+
+Install the core framework:
+
+```sh
+deno add jsr:@goddo/core
+```
+
+### Official Plugins
+
+You can install only the plugins you need to keep your server lightweight:
+
+- [`@goddo/core`](https://jsr.io/@goddo/core) — The framework core (Router, Context, Validation).
+- [`@goddo/html`](https://jsr.io/@goddo/html) — Zero-build JSX/HTML Server-Side Rendering.
+- [`@goddo/treaty`](https://jsr.io/@goddo/treaty) — End-to-end type-safe HTTP client.
+- [`@goddo/jwt`](https://jsr.io/@goddo/jwt) — JWT sign/verify plugin.
+- [`@goddo/cors`](https://jsr.io/@goddo/cors) — Cross-Origin Resource Sharing.
+- [`@goddo/openapi`](https://jsr.io/@goddo/openapi) — Swagger/Scalar OpenAPI 3.0 generation.
+- [`@goddo/static`](https://jsr.io/@goddo/static) — Serve static files and assets.
+- [`@goddo/rate-limit`](https://jsr.io/@goddo/rate-limit) — Request rate limiting.
+- [`@goddo/shield`](https://jsr.io/@goddo/shield) — Security headers injection.
+- [`@goddo/csrf`](https://jsr.io/@goddo/csrf) — Cross-Site Request Forgery protection.
+- [`@goddo/cron`](https://jsr.io/@goddo/cron) — Background cron jobs schedule.
+- [`@goddo/bearer`](https://jsr.io/@goddo/bearer) — Bearer token extractor.
+- [`@goddo/server-timing`](https://jsr.io/@goddo/server-timing) — Server-Timing API metrics.
+- [`@goddo/llms-txt`](https://jsr.io/@goddo/llms-txt) — AI-friendly `/llms.txt` generator.
+
+To install multiple packages at once:
+
+```sh
+deno add jsr:@goddo/core jsr:@goddo/html jsr:@goddo/cors
+```
 
 ## Quick Start
 
