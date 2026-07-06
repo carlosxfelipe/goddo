@@ -607,7 +607,8 @@ lib/                 # Framework core
   ws.ts              # WebSocket support (Deno.upgradeWebSocket)
   plugins/
     html/            # Native JSX-to-HTML Server-Side Rendering
-    openapi.ts       # OpenAPI Docs + Scalar UI
+    openapi.ts       # OpenAPI Docs + Scalar UI / Swagger UI
+    llms-txt.ts      # AI Documentation endpoint (/llms.txt)
     cors.ts          # CORS middleware
     static.ts        # Static file server
     jwt.ts           # JWT sign/verify (Web Crypto API)
@@ -618,23 +619,34 @@ lib/                 # Framework core
 scripts/             # Setup and utility scripts
   init.ts            # Bootstraps a new Goddo app (deno task init)
 tests/
-  goddo.test.ts
+  _reserved_segment_check.ts
+  bearer.test.ts
+  compile.test.ts
   cookie.test.ts
-  schema.test.ts
-  openapi.test.ts
   cors.test.ts
-  static.test.ts
+  cron.test.ts
+  error.test.ts
+  fixtures/          # Test fixtures and mock files
+  goddo.test.ts
+  handler.test.ts
+  html.test.tsx
   jwt.test.ts
+  llms-txt.test.ts
+  openapi.test.ts
+  schema.test.ts
+  server-timing.test.ts
+  static.test.ts
   treaty.test.ts
   ws.test.ts
-  html.test.tsx
-  compile.test.ts
-  bearer.test.ts
-  cron.test.ts
-  server-timing.test.ts
 benchmarks/
   goddo.bench.ts     # Router lookup, handler throughput, compilation overhead
 ```
+
+## Testing & Coverage
+
+Goddo is thoroughly tested to ensure high reliability and stability in production. The framework is
+backed by a robust suite of **over 160 unit tests**, maintaining exceptionally high code coverage
+across all core routing, parsing, validation, and plugin features.
 
 ## License
 
