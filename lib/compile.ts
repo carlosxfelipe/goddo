@@ -1,6 +1,6 @@
 import { validate } from '@goddo/schema'
 import { mapResponse } from '@goddo/handler'
-import { parseBody } from '@goddo/context'
+import { cleanupMap, parseBody, runCleanups } from '@goddo/context'
 import { GoddoError, NotFoundError } from '@goddo/error'
 import { CookieJar } from '@goddo/cookie'
 import type { Context, SetContext } from '@goddo/context'
@@ -143,13 +143,12 @@ export const compileRoutes = (
     set: SetContext
     store: Record<string, unknown>
 
-    private _urlStr: string
-    private _pathEnd: number
-    private _queryCache?: Record<string, string>
-    private _headersCache?: Record<string, string>
-    private _jar?: CookieJar
-    private _cookieCache?: CookieProxy
-    _cleanups?: (() => void | Promise<void>)[]
+    #urlStr: string
+    #pathEnd: number
+    #queryCache?: Record<string, string>
+    #headersCache?: Record<string, string>
+    #jar?: CookieJar
+    #cookieCache?: CookieProxy
 
     constructor(
       request: Request,
@@ -165,59 +164,62 @@ export const compileRoutes = (
       this.server = info
       this.path = path
       this.method = method
-      this._urlStr = urlStr
-      this._pathEnd = pathEnd
+      this.#urlStr = urlStr
+      this.#pathEnd = pathEnd
       this.set = set
       this.store = store
     }
 
     get query() {
-      if (!this._queryCache) {
-        this._queryCache = {}
-        if (this._pathEnd !== -1) {
-          const searchParams = new URLSearchParams(this._urlStr.substring(this._pathEnd))
-          for (const [key, value] of searchParams) this._queryCache[key] = value
+      if (!this.#queryCache) {
+        this.#queryCache = {}
+        if (this.#pathEnd !== -1) {
+          const searchParams = new URLSearchParams(this.#urlStr.substring(this.#pathEnd))
+          for (const [key, value] of searchParams) this.#queryCache[key] = value
         }
       }
-      return this._queryCache
+      return this.#queryCache
     }
     set query(v) {
-      this._queryCache = v
+      this.#queryCache = v
     }
 
     get headers() {
-      if (!this._headersCache) {
-        this._headersCache = {}
-        for (const [key, value] of this.request.headers) this._headersCache[key] = value
+      if (!this.#headersCache) {
+        this.#headersCache = {}
+        for (const [key, value] of this.request.headers) this.#headersCache[key] = value
       }
-      return this._headersCache
+      return this.#headersCache
     }
     set headers(v) {
-      this._headersCache = v
+      this.#headersCache = v
     }
 
     get cookie() {
-      if (!this._jar) {
-        this._jar = new CookieJar(this.request.headers.get('cookie'), cookieSecret)
-        this._cookieCache = this._jar as unknown as CookieProxy
-      }
-      return this._cookieCache!
+      if (this.#cookieCache) return this.#cookieCache
+      this.#jar = new CookieJar(this.request.headers.get('cookie'), cookieSecret)
+      this.#cookieCache = this.#jar as unknown as CookieProxy
+      return this.#cookieCache
     }
     set cookie(v) {
-      this._cookieCache = v
+      this.#cookieCache = v
     }
 
     getJar() {
-      return this._jar
+      return this.#jar
     }
     setJar(jar: CookieJar) {
-      this._jar = jar
-      this._cookieCache = undefined
+      this.#jar = jar
+      this.#cookieCache = undefined
     }
 
-    onCleanup(fn: () => void | Promise<void>) {
-      if (!this._cleanups) this._cleanups = []
-      this._cleanups.push(fn)
+    onCleanup = (fn: () => void | Promise<void>) => {
+      let cleanups = cleanupMap.get(this)
+      if (!cleanups) {
+        cleanups = []
+        cleanupMap.set(this, cleanups)
+      }
+      cleanups.push(fn)
     }
 
     error(status: number, message?: string) {
@@ -426,12 +428,7 @@ export const compileRoutes = (
 
       return new Response(error.message, { status })
     } finally {
-      if (context._cleanups) {
-        for (const fn of context._cleanups) {
-          const res = fn()
-          if (res instanceof Promise) await res.catch(console.error)
-        }
-      }
+      await runCleanups(context)
     }
   }
 }

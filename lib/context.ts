@@ -27,7 +27,24 @@ export interface Context<
   error: (status: number, message?: string) => GoddoError
   redirect: (url: string, status?: number) => Response
   onCleanup: (fn: () => void | Promise<void>) => void
-  _cleanups?: (() => void | Promise<void>)[]
+}
+
+export const cleanupMap = new WeakMap<object, (() => void | Promise<void>)[]>()
+
+export const runCleanups = async (ctx: object): Promise<void> => {
+  const cleanups = cleanupMap.get(ctx)
+  if (!cleanups) return
+
+  for (let i = cleanups.length - 1; i >= 0; i--) {
+    const fn = cleanups[i]
+    if (!fn) continue
+    try {
+      const res = fn()
+      if (res instanceof Promise) await res.catch(console.error)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 }
 
 export const createContext = (
@@ -51,7 +68,7 @@ export const createContext = (
   const cookie = new CookieJar(request.headers.get('cookie'), cookieSecret) as CookieProxy
   const cleanups: (() => void | Promise<void>)[] = []
 
-  return {
+  const ctx = {
     request,
     server: info,
     path: url.pathname,
@@ -74,8 +91,10 @@ export const createContext = (
         headers: { location },
       }),
     onCleanup: (fn: () => void | Promise<void>) => cleanups.push(fn),
-    _cleanups: cleanups,
   }
+
+  cleanupMap.set(ctx, cleanups)
+  return ctx
 }
 
 export const parseBody = async (request: Request): Promise<unknown> => {

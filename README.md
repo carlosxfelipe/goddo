@@ -226,21 +226,24 @@ new Goddo()
   .get('/me', ({ user }) => user.name)
 ```
 
-**`onCleanup`** registers a teardown function that runs asynchronously in the `finally` block
-**after** the request finishes. *(Inspired by FastAPI's `yield` and Hono's `onCleanup`).*
+## Cleanup (Teardown)
 
-This is perfect for cleaning up **request-scoped resources** like database transactions,
-temporary files, or observability spans:
+**`onCleanup`** is a context method that registers a teardown function. It runs asynchronously in
+the `finally` block **after** the request finishes. _(Inspired by FastAPI's `yield` and Hono's
+`onCleanup`)._
+
+This is perfect for cleaning up **request-scoped resources** like database transactions, temporary
+files, or observability spans:
 
 ```ts
 new Goddo()
   .derive(({ onCleanup }) => {
     // Start a database transaction scoped to this request
     const tx = db.transaction()
-    
+
     // Ensure the transaction is rolled back/released when the request ends
     onCleanup(() => tx.release())
-    
+
     return { tx }
   })
 ```
@@ -670,7 +673,7 @@ formatter. To use Deno's formatter automatically on save, add the following to y
 
 ## Testing & Coverage
 
-Goddo is built with reliability in mind, backed by a robust suite of **over 180 unit tests**
+Goddo is built with reliability in mind, backed by a robust suite of **over 200 unit tests**
 covering core routing, parsing, validation, and plugin features. While it is highly capable,
 extremely fast, and deeply typed, it is a new framework; we encourage you to test it thoroughly for
 your specific use cases before large-scale production deployments.

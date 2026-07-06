@@ -40,6 +40,8 @@ export interface WSOptions {
 
 // ─── GoddoWebSocket ───────────────────────────────────────────────────────────
 
+export const WS_CLEANUP = Symbol('Goddo.ws_cleanup')
+
 /**
  * Wrapper around the native `WebSocket` with Elysia-compatible pub/sub helpers.
  * Passed to every WebSocket lifecycle callback (`open`, `message`, `close`, `error`).
@@ -59,14 +61,14 @@ export class GoddoWebSocket<Data = unknown> {
    */
   readonly data: Data
 
-  private readonly _topicMap: TopicMap
-  private readonly _subscriptions = new Set<string>()
+  #topicMap: TopicMap
+  #subscriptions = new Set<string>()
 
   constructor(raw: WebSocket, data: Data, topicMap: TopicMap) {
     this.id = crypto.randomUUID()
     this.raw = raw
     this.data = data
-    this._topicMap = topicMap
+    this.#topicMap = topicMap
   }
 
   // ── Sending ────────────────────────────────────────────────────────────────
@@ -96,16 +98,22 @@ export class GoddoWebSocket<Data = unknown> {
    * Subsequent `ws.publish(topic, …)` calls will forward messages to this connection.
    */
   subscribe(topic: string): this {
-    if (!this._topicMap.has(topic)) this._topicMap.set(topic, new Set())
-    this._topicMap.get(topic)!.add(this)
-    this._subscriptions.add(topic)
+    if (this.#subscriptions.has(topic)) return this
+    this.#subscriptions.add(topic)
+
+    let subscribers = this.#topicMap.get(topic)
+    if (!subscribers) {
+      subscribers = new Set()
+      this.#topicMap.set(topic, subscribers)
+    }
+    subscribers.add(this as unknown as GoddoWebSocket)
     return this
   }
 
   /** Unsubscribe this connection from a named topic. */
   unsubscribe(topic: string): this {
-    this._topicMap.get(topic)?.delete(this)
-    this._subscriptions.delete(topic)
+    this.#topicMap.get(topic)?.delete(this as unknown as GoddoWebSocket)
+    this.#subscriptions.delete(topic)
     return this
   }
 
@@ -114,10 +122,10 @@ export class GoddoWebSocket<Data = unknown> {
    * Objects/arrays are serialized to JSON automatically.
    */
   publish(topic: string, data: unknown): this {
-    const subs = this._topicMap.get(topic)
-    if (!subs) return this
+    const subscribers = this.#topicMap.get(topic)
+    if (!subscribers) return this
     const msg = typeof data === 'string' ? data : JSON.stringify(data)
-    for (const sub of subs) {
+    for (const sub of subscribers) {
       if (sub !== this && sub.raw.readyState === WebSocket.OPEN) sub.raw.send(msg)
     }
     return this
@@ -125,7 +133,7 @@ export class GoddoWebSocket<Data = unknown> {
 
   /** Returns `true` if this connection is currently subscribed to `topic`. */
   isSubscribed(topic: string): boolean {
-    return this._subscriptions.has(topic)
+    return this.#subscriptions.has(topic)
   }
 
   // ── Closing ────────────────────────────────────────────────────────────────
@@ -143,10 +151,10 @@ export class GoddoWebSocket<Data = unknown> {
   // ── Internal ───────────────────────────────────────────────────────────────
 
   /** @internal Remove this connection from all subscribed topics (called on `socket.onclose`). */
-  _cleanup(): void {
-    for (const topic of this._subscriptions) {
-      this._topicMap.get(topic)?.delete(this)
+  [WS_CLEANUP](): void {
+    for (const topic of this.#subscriptions) {
+      this.#topicMap.get(topic)?.delete(this as unknown as GoddoWebSocket)
     }
-    this._subscriptions.clear()
+    this.#subscriptions.clear()
   }
 }

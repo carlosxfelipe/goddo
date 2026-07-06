@@ -312,3 +312,64 @@ Deno.test('Compiled route: guard hooks apply to scoped routes', async () => {
   if (statusAdmin !== 401) throw new Error(`Expected 401, got ${statusAdmin}`)
   if (textPublic !== 'public') throw new Error(`Expected "public", got "${textPublic}"`)
 })
+
+Deno.test('Compiled route: Context getters/setters (query, headers, cookie)', async () => {
+  const app = new Goddo().get('/ctx', (ctx) => {
+    // Modify query
+    ctx.query = { foo: 'bar' }
+
+    // Modify headers
+    ctx.headers = { 'x-foo': 'baz' } // Modify cookie
+     // Need to cast to bypass readonly type definitions for test purposes
+    ;(ctx as unknown as Record<string, unknown>).cookie = { test: 'cookie' }
+
+    return {
+      query: ctx.query,
+      headers: ctx.headers,
+      cookie: (ctx as unknown as Record<string, unknown>).cookie,
+      jar: typeof (ctx as unknown as Record<string, unknown>).getJar === 'function'
+        ? (ctx as unknown as { getJar(): unknown }).getJar()
+        : undefined,
+    }
+  })
+  await startApp(app, 4219)
+
+  const res = await fetch('http://localhost:4219/ctx')
+  const json = await res.json()
+  await stopApp(app)
+
+  if (json.query.foo !== 'bar') throw new Error('query setter failed')
+  if (json.headers['x-foo'] !== 'baz') throw new Error('headers setter failed')
+  if (json.cookie.test !== 'cookie') throw new Error('cookie setter failed')
+})
+
+Deno.test('Compiled route: onCleanup catches errors internally', async () => {
+  let counter = 0
+  const app = new Goddo().get('/cleanup-error', ({ onCleanup }) => {
+    onCleanup(() => {
+      counter++
+    })
+    onCleanup(() => {
+      throw new Error('boom')
+    })
+    onCleanup(() => {
+      counter++
+    })
+    return 'ok'
+  })
+
+  await startApp(app, 4220)
+
+  // Suppress console.error during test
+  const originalError = console.error
+  console.error = () => {}
+
+  const res = await fetch('http://localhost:4220/cleanup-error')
+  const text = await res.text()
+
+  console.error = originalError
+  await stopApp(app)
+
+  if (text !== 'ok') throw new Error('response failed')
+  if (counter !== 2) throw new Error(`Expected counter to be 2, got ${counter}`)
+})

@@ -44,3 +44,58 @@ Deno.test('llmstxt - generates valid markdown documentation', async () => {
   assertEquals(text.includes('- `name` (string) *(required)*'), true)
   assertEquals(text.includes('- `age` (numeric)'), true)
 })
+
+Deno.test('llmstxt - generates valid markdown for nested schemas, arrays, and query/headers', async () => {
+  const app = new Goddo()
+    .use(llmstxt({ exclude: [/^\/ignored/], title: 'Advanced API', description: 'Advanced' }))
+    .post('/nested', () => 'nested', {
+      query: t.Object({ page: t.Numeric() }),
+      headers: t.Object({ 'x-token': t.String({ description: 'Auth token' }) }),
+      body: t.Object({
+        tags: t.Array(t.String()),
+        nestedArray: t.Array(t.Object({ id: t.Numeric() })),
+        emptyObj: t.Object({}),
+        primitive: t.String(),
+      }),
+      detail: { description: 'A nested endpoint' },
+    })
+    .get('/ignored/route', () => 'ignored')
+
+  const res = await app.handle(new Request('http://localhost/llms.txt'))
+  const text = await res.text()
+
+  // Structure
+  assertEquals(text.includes('# Advanced API'), true)
+  assertEquals(text.includes('> Advanced'), true)
+
+  // Ignored route
+  assertEquals(text.includes('/ignored/route'), false)
+
+  // Parameters
+  assertEquals(text.includes('- `page` (query): numeric *(required)*'), true)
+  assertEquals(text.includes('- `x-token` (header): string *(required)* - Auth token'), true)
+
+  // Body formatting
+  assertEquals(text.includes('- `tags` (array) *(required)*'), true)
+  assertEquals(text.includes('Array<string>'), true)
+  assertEquals(text.includes('- `emptyObj` (object) *(required)*'), true)
+  assertEquals(text.includes('- `nestedArray` (array) *(required)*'), true)
+  assertEquals(text.includes('- Array of:\n    - `id` (numeric) *(required)*'), true)
+})
+
+Deno.test('llmstxt - handles top-level array and primitive body', async () => {
+  const app = new Goddo()
+    .use(llmstxt())
+    .post('/arr', () => 'arr', {
+      body: t.Array(t.String()),
+    })
+    .post('/prim', () => 'prim', {
+      body: t.String(),
+    })
+
+  const res = await app.handle(new Request('http://localhost/llms.txt'))
+  const text = await res.text()
+
+  assertEquals(text.includes('- array'), true)
+  assertEquals(text.includes('- string'), true)
+})

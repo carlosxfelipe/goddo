@@ -1,12 +1,12 @@
 import { Router } from '@goddo/router'
-import { createContext, parseBody } from '@goddo/context'
+import { createContext, parseBody, runCleanups } from '@goddo/context'
 import type { Context } from '@goddo/context'
 import { mapResponse } from '@goddo/handler'
 import { GoddoError, NotFoundError } from '@goddo/error'
 import { validate } from '@goddo/schema'
 import { compileRoutes } from '@goddo/compile'
 import type { CompiledHandler } from '@goddo/compile'
-import { GoddoWebSocket } from '@goddo/ws'
+import { GoddoWebSocket, WS_CLEANUP } from '@goddo/ws'
 import type { TopicMap, WSOptions } from '@goddo/ws'
 import type {
   AddRoute,
@@ -241,7 +241,7 @@ export class Goddo<
         }
 
         socket.onclose = async (event: CloseEvent) => {
-          ws._cleanup()
+          ws[WS_CLEANUP]()
           await options.close?.(ws, event.code, event.reason)
         }
 
@@ -650,12 +650,7 @@ export class Goddo<
 
       return new Response(error.message, { status })
     } finally {
-      if (context._cleanups) {
-        for (const fn of context._cleanups) {
-          const res = fn()
-          if (res instanceof Promise) await res.catch(console.error)
-        }
-      }
+      await runCleanups(context)
     }
   }
 
