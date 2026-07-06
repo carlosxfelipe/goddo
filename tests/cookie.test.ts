@@ -110,3 +110,41 @@ Deno.test('parses multiple cookies', async () => {
   const res = await req(app, '/', { headers: { cookie: 'a=1; b=2; c=3' } })
   if ((await res.text()) !== '1,2,3') throw new Error('wrong multi-cookie parse')
 })
+
+Deno.test('cookie parsing skips malformed segments', async () => {
+  const app = new Goddo().get('/', ({ cookie }) => cookie.valid.value ?? 'no')
+  // 'malformed' has no '=', should be skipped, 'valid=yes' should be parsed
+  const res = await req(app, '/', { headers: { cookie: 'malformed; valid=yes' } })
+  if ((await res.text()) !== 'yes') throw new Error('should parse valid segment')
+})
+
+Deno.test('Cookie proxy allows direct value assignment and iteration', async () => {
+  const app = new Goddo().get('/', ({ cookie }) => {
+    // Test proxy set trap
+    cookie.direct = 'assigned'
+    // Test proxy has / ownKeys
+    const keys = Object.keys(cookie)
+    return keys.includes('direct') ? 'ok' : 'fail'
+  })
+  const res = await req(app, '/')
+  if ((await res.text()) !== 'ok') throw new Error('proxy traps failed')
+  const setCookie = res.headers.get('set-cookie')
+  if (!setCookie?.includes('direct=assigned')) throw new Error('did not set direct cookie')
+})
+
+Deno.test('Cookie properties getter/setter coverage', async () => {
+  const app = new Goddo().get('/', ({ cookie }) => {
+    cookie.test.value = 'val'
+    cookie.test.domain = 'example.com'
+    cookie.test.priority = 'high'
+    // Also test isRemoved
+    cookie.deleted.remove()
+    if (!cookie.deleted.isRemoved) throw new Error('should be removed')
+    return 'ok'
+  })
+  const res = await req(app, '/')
+  const setCookies = res.headers.getSetCookie()
+  const testCookie = setCookies.find((c) => c.startsWith('test='))
+  if (!testCookie?.includes('Domain=example.com')) throw new Error('missing domain')
+  if (!testCookie?.includes('Priority=High')) throw new Error('missing priority')
+})

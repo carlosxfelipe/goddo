@@ -241,3 +241,31 @@ Deno.test('additionalProperties: false rejects extras', () => {
     if (!(err instanceof ValidationError)) throw err
   }
 })
+
+Deno.test('t.Any and t.Unknown accept anything', () => {
+  validate(t.Any(), 1)
+  validate(t.Any(), 'str')
+  validate(t.Any(), null)
+  validate(t.Unknown(), {})
+  validate(t.Unknown(), [])
+})
+
+Deno.test('t.File and t.Date validations', () => {
+  validate(t.Date(), new Date())
+  try {
+    validate(t.Date(), 'not-a-date')
+    throw new Error('should throw')
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err
+  }
+
+  // Assuming t.File expects a File object
+  const file = new File([''], 'test.txt')
+  validate(t.File(), file)
+  try {
+    validate(t.File(), {})
+    throw new Error('should throw')
+  } catch (err) {
+    if (!(err instanceof ValidationError)) throw err
+  }
+})

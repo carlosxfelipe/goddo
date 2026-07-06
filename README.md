@@ -33,14 +33,15 @@ deno task dev
 
 These tasks remain available for your application after initialization:
 
-| Task              | Description                  |
-| ----------------- | ---------------------------- |
-| `deno task dev`   | Demo app (`src/`) with watch |
-| `deno task start` | Demo app (`src/`)            |
-| `deno task test`  | Runs the test suite          |
-| `deno task check` | Type-check                   |
-| `deno task fmt`   | Formats the code             |
-| `deno task lint`  | Linting                      |
+| Task                 | Description                    |
+| -------------------- | ------------------------------ |
+| `deno task dev`      | Demo app (`src/`) with watch   |
+| `deno task start`    | Demo app (`src/`)              |
+| `deno task test`     | Runs the test suite            |
+| `deno task coverage` | Generates code coverage report |
+| `deno task check`    | Type-check                     |
+| `deno task fmt`      | Formats the code               |
+| `deno task lint`     | Linting                        |
 
 ### Framework Tasks
 
@@ -305,7 +306,9 @@ Options: `path` (default `/docs`), `documentation` (base OpenAPI document), `det
 
 ## AI Documentation (`@goddo/llms-txt`)
 
-A native, zero-dependency plugin that generates an `/llms.txt` endpoint. It leverages Goddo's route tree and TypeBox schemas to output an LLM-friendly Markdown documentation of your API. This makes your application instantly compatible with AI agents and LLMs.
+A native, zero-dependency plugin that generates an `/llms.txt` endpoint. It leverages Goddo's route
+tree and TypeBox schemas to output an LLM-friendly Markdown documentation of your API. This makes
+your application instantly compatible with AI agents and LLMs.
 
 ```ts
 import { Goddo, t } from 'goddo'
@@ -315,7 +318,7 @@ new Goddo()
   .use(llmstxt({
     title: 'My Custom API',
     description: 'Documentation optimized for LLMs',
-    exclude: ['/docs', '/docs/json']
+    exclude: ['/docs', '/docs/json'],
   }))
   .get('/user/:id', ({ params: { id } }) => id, {
     params: t.Object({ id: t.Numeric({ description: 'User ID' }) }),
@@ -325,7 +328,8 @@ new Goddo()
 // AI Docs: GET /llms.txt
 ```
 
-Options: `path` (default `/llms.txt`), `title`, `description`, and `exclude` (paths excluded from spec).
+Options: `path` (default `/llms.txt`), `title`, `description`, and `exclude` (paths excluded from
+spec).
 
 ## HTML SSR (`@goddo/html`)
 
