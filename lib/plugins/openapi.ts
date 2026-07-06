@@ -216,7 +216,6 @@ const scalarHTML = (specUrl: string, title: string, version: string, config: unk
 export const openapi = (options: OpenAPIOptions = {}) => (app: Goddo): Goddo => {
   const path = options.path ?? '/docs'
   const specPath = `${path}/json`
-  const version = options.version ?? 'latest'
   const info = {
     title: 'Goddo Documentation',
     version: '0.0.0',

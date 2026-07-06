@@ -109,3 +109,54 @@ Deno.test('query becomes parameter in the spec', async () => {
   if (page.required !== false) throw new Error('default should make it optional')
   if (q?.required !== false) throw new Error('optional should be required: false')
 })
+
+Deno.test('serves Swagger UI when provider is swagger-ui', async () => {
+  const app = new Goddo().use(openapi({ provider: 'swagger-ui' })).get('/', () => 'hi')
+  const res = await req(app, '/docs')
+  const html = await res.text()
+
+  if (html.includes('@scalar/api-reference')) {
+    throw new Error('Scalar referenced instead of Swagger')
+  }
+  if (!html.includes('swagger-ui-bundle.js')) throw new Error('Swagger bundle missing')
+})
+
+Deno.test('bearerAuth option injects security schemes', async () => {
+  const app = new Goddo().use(openapi({ bearerAuth: true })).get('/', () => 'hi')
+  const res = await req(app, '/docs/json')
+  const spec = await res.json()
+
+  if (spec.components?.securitySchemes?.bearerAuth?.type !== 'http') {
+    throw new Error('bearerAuth security scheme not injected')
+  }
+})
+
+Deno.test('hide detail removes route from spec', async () => {
+  const app = new Goddo()
+    .use(openapi())
+    .get('/visible', () => 'ok')
+    .get('/hidden', () => 'secret', { detail: { hide: true } })
+
+  const res = await req(app, '/docs/json')
+  const spec = await res.json()
+
+  if (!spec.paths['/visible']) throw new Error('visible route missing')
+  if (spec.paths['/hidden']) throw new Error('hidden route leaked into spec')
+})
+
+Deno.test('auto-tags routes based on path prefix', async () => {
+  const app = new Goddo()
+    .use(openapi())
+    .get('/users/:id', () => 'ok')
+    .get('/auth/login', () => 'ok')
+
+  const res = await req(app, '/docs/json')
+  const spec = await res.json()
+
+  if (spec.paths['/users/{id}']?.get?.tags?.[0] !== 'Users') {
+    throw new Error('auto-tag failed for /users')
+  }
+  if (spec.paths['/auth/login']?.get?.tags?.[0] !== 'Auth') {
+    throw new Error('auto-tag failed for /auth')
+  }
+})
