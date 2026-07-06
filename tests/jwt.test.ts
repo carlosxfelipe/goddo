@@ -1,5 +1,5 @@
-import { Goddo } from 'goddo'
-import { jwt } from '../lib/plugins/jwt.ts'
+import { Goddo } from '@goddo/core'
+import { jwt } from '@goddo/jwt'
 
 const req = (app: Goddo, path: string, init?: RequestInit) =>
   app.handle(new Request(`http://localhost${path}`, init))

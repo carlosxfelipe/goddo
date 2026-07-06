@@ -1,4 +1,4 @@
-import { Goddo } from 'goddo'
+import { Goddo } from '@goddo/core'
 import { bearer } from '@goddo/bearer'
 
 const makeApp = () =>

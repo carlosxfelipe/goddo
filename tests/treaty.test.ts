@@ -6,7 +6,7 @@
  * the server down.
  */
 
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 import { treaty } from '@goddo/treaty'
 
 // ---------------------------------------------------------------------------

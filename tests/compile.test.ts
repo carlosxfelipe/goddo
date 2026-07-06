@@ -1,6 +1,6 @@
-import { Goddo, t } from 'goddo'
-import { compileRoutes } from '@goddo/compile'
-import { Router } from '@goddo/router'
+import { Goddo, t } from '@goddo/core'
+import { compileRoutes } from '@goddo/core/compile'
+import { Router } from '@goddo/core/router'
 
 const startApp = async (app: Goddo, port: number): Promise<void> => {
   app.listen(port)

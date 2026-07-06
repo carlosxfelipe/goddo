@@ -1,4 +1,4 @@
-import { Goddo } from 'goddo'
+import { Goddo } from '@goddo/core'
 import { cron, matches, parsePattern } from '@goddo/cron'
 import type { CronJob } from '@goddo/cron'
 

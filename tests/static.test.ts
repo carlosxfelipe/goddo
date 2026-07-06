@@ -1,5 +1,5 @@
-import { Goddo } from 'goddo'
-import { staticPlugin } from '../lib/plugins/static.ts'
+import { Goddo } from '@goddo/core'
+import { staticPlugin } from '@goddo/static'
 import { fromFileUrl } from 'jsr:@std/path@1.1.6'
 
 // Fixture directory committed to the repo — no write permission needed.

@@ -16,7 +16,7 @@ native Deno and Web Platform APIs.
 ## Quick Start
 
 ```ts
-import { Goddo } from 'goddo'
+import { Goddo } from '@goddo/core'
 
 new Goddo()
   .get('/', () => 'Hello Goddo')
@@ -104,7 +104,7 @@ type inference in the handler and automatic coercion in `query`/`params`/`header
 return `422` (error code `VALIDATION` in `onError`).
 
 ```ts
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 
 new Goddo()
   .post('/user', ({ body }) => body.name, { // body: { name: string; age: number }
@@ -272,7 +272,7 @@ Serves static files from a local directory, with automatic MIME type detection, 
 support, cache headers, and path-traversal protection:
 
 ```ts
-import { Goddo } from 'goddo'
+import { Goddo } from '@goddo/core'
 import { staticPlugin } from '@goddo/static'
 
 new Goddo()
@@ -294,7 +294,7 @@ Zero-dependency JWT plugin built on the Web Crypto API (HS256 / HS384 / HS512). 
 object into the context with `sign` and `verify`:
 
 ```ts
-import { Goddo } from 'goddo'
+import { Goddo } from '@goddo/core'
 import { jwt } from '@goddo/jwt'
 
 new Goddo()
@@ -326,7 +326,7 @@ and serves either the modern [Scalar](https://scalar.com) UI (default) or the cl
 using the exact same syntax as Elysia's plugin.
 
 ```ts
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 import { openapi } from '@goddo/openapi'
 
 new Goddo()
@@ -392,7 +392,7 @@ tree and TypeBox schemas to output an LLM-friendly Markdown documentation of you
 your application instantly compatible with AI agents and LLMs.
 
 ```ts
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 import { llmstxt } from '@goddo/llms-txt'
 
 new Goddo()
@@ -432,7 +432,7 @@ Components directly to HTML strings without Virtual DOM overhead.
 **2. Usage**
 
 ```tsx
-import { Goddo } from 'goddo'
+import { Goddo } from '@goddo/core'
 import { html } from '@goddo/html'
 
 // Full support for seamless Async Components!
@@ -462,7 +462,7 @@ Goddo supports Elysia-compatible WebSockets with built-in schema validation and 
 powered natively by `Deno.upgradeWebSocket`:
 
 ```ts
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 
 new Goddo()
   .ws('/chat', {
@@ -494,7 +494,7 @@ generics and a runtime `Proxy` to give you perfect end-to-end autocompletion.
 ### Setup
 
 ```ts
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 import { treaty } from '@goddo/treaty'
 
 const app = new Goddo()
@@ -663,8 +663,11 @@ formatter. To use Deno's formatter automatically on save, add the following to y
 ## Structure
 
 - **`src/`** — Demo application serving as an example of how to use Goddo.
-- **`lib/`** — Framework core containing routing, context, validation, and all built-in features.
-  - **`lib/plugins/`** — Official built-in plugins (like HTML, OpenAPI, CORS, Rate Limit, etc.).
+- **`packages/`** — Monorepo containing the framework and all plugins.
+  - **`packages/core/`** — Framework core containing routing, context, validation, and all built-in
+    features.
+  - **`packages/<plugin>/`** — Official built-in plugins (like HTML, OpenAPI, CORS, Rate Limit,
+    etc.) as independent packages.
 - **`bruno/`** — Bruno API collections for testing the demo application endpoints.
 - **`tests/`** — Comprehensive test suite for the Goddo core and all its plugins.
 - **`scripts/`** — Setup and utility scripts (like the bootstrap script for new apps).

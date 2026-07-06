@@ -7,7 +7,7 @@
  * If any of them stops producing an error, the guard has regressed.
  */
 
-import { Goddo } from '../lib/index.ts'
+import { Goddo } from '@goddo/core'
 
 // ── ✅ Valid paths — should type-check without errors ─────────────────────────
 

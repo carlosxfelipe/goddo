@@ -1,5 +1,5 @@
-import { Goddo } from '../lib/index.ts'
-import { rateLimit } from '../lib/plugins/rate-limit.ts'
+import { Goddo } from '@goddo/core'
+import { rateLimit } from '@goddo/rate-limit'
 
 const req = (app: Goddo, path: string, init?: RequestInit) =>
   app.handle(new Request(`http://localhost${path}`, init), {

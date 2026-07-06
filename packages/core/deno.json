@@ -1,0 +1,16 @@
+{
+  "name": "@goddo/core",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./index.ts",
+    "./router": "./router.ts",
+    "./compile": "./compile.ts",
+    "./handler": "./handler.ts",
+    "./schema": "./schema.ts",
+    "./context": "./context.ts",
+    "./error": "./error.ts",
+    "./types": "./types.ts",
+    "./cookie": "./cookie.ts",
+    "./ws": "./ws.ts"
+  }
+}

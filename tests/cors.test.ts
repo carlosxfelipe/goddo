@@ -1,5 +1,5 @@
-import { Goddo } from 'goddo'
-import { cors } from '../lib/plugins/cors.ts'
+import { Goddo } from '@goddo/core'
+import { cors } from '@goddo/cors'
 
 const req = (app: Goddo, path: string, init?: RequestInit) =>
   app.handle(new Request(`http://localhost${path}`, init))

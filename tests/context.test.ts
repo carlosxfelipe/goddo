@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts'
-import { cleanupMap, parseBody, runCleanups } from '../lib/context.ts'
-import { ParseError } from '../lib/error.ts'
+import { cleanupMap, parseBody, runCleanups } from '@goddo/core/context'
+import { ParseError } from '@goddo/core/error'
 
 Deno.test('parseBody: returns undefined for GET and HEAD', async () => {
   const getReq = new Request('http://localhost/', { method: 'GET' })

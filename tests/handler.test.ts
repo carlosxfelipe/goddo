@@ -1,4 +1,4 @@
-import { Goddo } from '../lib/index.ts'
+import { Goddo } from '@goddo/core'
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
 
 const req = (app: Goddo, path: string, init?: RequestInit) =>

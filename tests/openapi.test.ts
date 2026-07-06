@@ -1,4 +1,4 @@
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 import { openapi } from '@goddo/openapi'
 
 const req = (app: Goddo, path: string, init?: RequestInit) =>

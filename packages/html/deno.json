@@ -1,0 +1,8 @@
+{
+  "name": "@goddo/html",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./index.ts",
+    "./jsx-runtime": "./jsx-runtime.ts"
+  }
+}

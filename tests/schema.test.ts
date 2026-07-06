@@ -1,4 +1,4 @@
-import { Goddo, t, validate, ValidationError } from 'goddo'
+import { Goddo, t, validate, ValidationError } from '@goddo/core'
 
 const req = (app: Goddo, path: string, init?: RequestInit) =>
   app.handle(new Request(`http://localhost${path}`, init))

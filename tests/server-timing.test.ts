@@ -1,4 +1,4 @@
-import { Goddo } from 'goddo'
+import { Goddo } from '@goddo/core'
 import { serverTiming } from '@goddo/server-timing'
 
 Deno.test('server-timing: adds Server-Timing header with all metrics', async () => {

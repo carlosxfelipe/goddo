@@ -1,4 +1,4 @@
-import { Goddo } from 'goddo'
+import { Goddo } from '@goddo/core'
 import { html } from '@goddo/html'
 
 Deno.test('HTML Plugin - Renders static JSX', async () => {

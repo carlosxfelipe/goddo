@@ -1,4 +1,4 @@
-import { error, NotFoundError, ParseError, ValidationError } from '../lib/error.ts'
+import { error, NotFoundError, ParseError, ValidationError } from '@goddo/core/error'
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
 
 Deno.test('GoddoError base class', () => {

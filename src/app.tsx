@@ -1,4 +1,4 @@
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 import { html, HtmlString } from '@goddo/html'
 import { openapi } from '@goddo/openapi'
 import { llmstxt } from '@goddo/llms-txt'

@@ -1,5 +1,5 @@
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 import { llmstxt } from '@goddo/llms-txt'
 
 Deno.test('llmstxt - generates valid markdown documentation', async () => {

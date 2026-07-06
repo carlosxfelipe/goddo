@@ -1,4 +1,4 @@
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

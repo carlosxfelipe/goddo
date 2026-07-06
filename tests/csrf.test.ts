@@ -1,5 +1,5 @@
-import { Goddo } from '../lib/index.ts'
-import { csrf } from '../lib/plugins/csrf.ts'
+import { Goddo } from '@goddo/core'
+import { csrf } from '@goddo/csrf'
 
 const req = (app: Goddo, path: string, init?: RequestInit) =>
   app.handle(new Request(`http://localhost${path}`, init))

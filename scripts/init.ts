@@ -67,7 +67,7 @@ async function initProject() {
     console.error('❌ Failed to update deno.json:', e)
   }
 
-  const basicApp = `import { Goddo } from 'goddo'
+  const basicApp = `import { Goddo } from '@goddo/core'
 import { openapi } from '@goddo/openapi'
 
 export const app = new Goddo()

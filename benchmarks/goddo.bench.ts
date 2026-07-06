@@ -1,5 +1,5 @@
 import { Router } from '@goddo/router'
-import { Goddo, t } from 'goddo'
+import { Goddo, t } from '@goddo/core'
 
 // --- Router lookup benchmarks ---
 

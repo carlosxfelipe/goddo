@@ -1,5 +1,5 @@
-import { Goddo } from '../lib/index.ts'
-import { shield } from '../lib/plugins/shield.ts'
+import { Goddo } from '@goddo/core'
+import { shield } from '@goddo/shield'
 
 const req = (app: Goddo, path: string) => app.handle(new Request(`http://localhost${path}`))
 
