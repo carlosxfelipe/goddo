@@ -23,8 +23,7 @@
     "fmt": "deno fmt",
     "lint": "deno lint",
     "bench": "deno bench --allow-net benchmarks/",
-    "coverage": "rm -rf cov/ && deno test --coverage=cov/ --allow-net --allow-read --allow-env && deno coverage cov/",
-    "init": "deno run --allow-read --allow-write scripts/init.ts"
+    "coverage": "rm -rf cov/ && deno test --coverage=cov/ --allow-net --allow-read --allow-env && deno coverage cov/"
   },
   "compilerOptions": {
     "strict": true,

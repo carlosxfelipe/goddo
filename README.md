@@ -15,7 +15,7 @@ native Deno and Web Platform APIs.
 - [Deno extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno) for VS
   Code (recommended).
 
-## Installation
+## Starting a New Project
 
 Goddo and its plugins are published on the [JSR registry](https://jsr.io/@goddo) under the `@goddo`
 scope.
@@ -69,10 +69,6 @@ deno task dev
 
 ## Tasks
 
-### Application Tasks
-
-These tasks remain available for your application after initialization:
-
 | Task                 | Description                    |
 | -------------------- | ------------------------------ |
 | `deno task dev`      | Demo app (`src/`) with watch   |
@@ -82,35 +78,7 @@ These tasks remain available for your application after initialization:
 | `deno task check`    | Type-check                     |
 | `deno task fmt`      | Formats the code               |
 | `deno task lint`     | Linting                        |
-
-### Framework Tasks
-
-These tasks are for Goddo's internal development and are removed by `deno task init`:
-
-| Task              | Description                             |
-| ----------------- | --------------------------------------- |
-| `deno task bench` | Runs performance benchmarks             |
-| `deno task init`  | Resets the repository for a new project |
-
-## Starting a New Project
-
-If you cloned this repository and want to start your own application using Goddo, you can run the
-initialization script to clean up the framework's internal development files:
-
-```sh
-deno task init
-```
-
-> [!WARNING]
-> This is a destructive action designed to clean up the repository. It will prompt for confirmation
-> before it:
->
-> - Deletes the `tests/`, `bruno/`, and `benchmarks/` directories.
-> - Removes the `init` task itself from `deno.json`.
-> - Resets `src/app.tsx` to a basic code snippet with OpenAPI.
-> - Deletes `LICENSE`.
-> - Deletes `README.md`.
-> - Deletes the `scripts/` directory (self-destructs the script).
+| `deno task bench`    | Runs performance benchmarks    |
 
 ## Syntax (matches Elysia)
 
@@ -708,7 +676,6 @@ formatter. To use Deno's formatter automatically on save, add the following to y
     etc.) as independent packages.
 - **`bruno/`** — Bruno API collections for testing the demo application endpoints.
 - **`tests/`** — Comprehensive test suite for the Goddo core and all its plugins.
-- **`scripts/`** — Setup and utility scripts (like the bootstrap script for new apps).
 - **`benchmarks/`** — Performance benchmarks for router lookup, handler throughput, and compilation
   overhead.
 
