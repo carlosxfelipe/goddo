@@ -629,6 +629,8 @@ deno task bench
 Benchmarks cover router lookup (static, parametric, wildcard, 404), compiled handler throughput
 (GET, POST with validation), compilation overhead, and a compiled-vs-uncompiled comparison.
 
+See [BENCHMARK.md](./BENCHMARK.md) for detailed performance results and comparisons.
+
 ## API Collections
 
 This project includes API collections for [Bruno](https://www.usebruno.com/), an open-source IDE for

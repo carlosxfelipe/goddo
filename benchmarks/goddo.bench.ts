@@ -1,4 +1,4 @@
-import { Router } from '@goddo/router'
+import { Router } from '@goddo/core/router'
 import { Goddo, t } from '@goddo/core'
 
 // --- Router lookup benchmarks ---
