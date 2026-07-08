@@ -103,6 +103,38 @@ new Goddo()
   .listen(3000)
 ```
 
+### Divergence from Elysia: error responses
+
+Elysia handles error responses by mutating the `set` context object:
+
+```ts
+// Elysia
+.get('/:id', ({ params: { id }, set }) => {
+  const todo = find(id)
+  if (!todo) {
+    set.status = 404
+    return 'Not found'
+  }
+  return todo
+})
+```
+
+Goddo intentionally diverges here in favor of
+[Web Standard](https://developer.mozilla.org/en-US/docs/Web/API/Response) primitives. Handlers are
+pure functions — the status code and body travel together as a single, immutable return value:
+
+```ts
+// Goddo
+.get('/:id', ({ params: { id } }) => {
+  const todo = find(id)
+  if (!todo) return new Response('Not found', { status: 404 })
+  return todo
+})
+```
+
+This avoids hidden state mutation, matches the Fetch API that runs natively on Deno, Bun, Cloudflare
+Workers, and modern browsers, and makes the handler easier to test in isolation.
+
 ## Validation (`t` module)
 
 TypeBox-style schemas for `body`, `query`, `params`, `headers` and `response`, featuring end-to-end
@@ -232,7 +264,7 @@ new Goddo()
   .get('/me', ({ user }) => user.name)
 ```
 
-## Cleanup (Teardown)
+### Divergence from Elysia: onCleanup (Teardown)
 
 **`onCleanup`** is a context method that registers a teardown function. It runs asynchronously in
 the `finally` block **after** the request finishes. _(Inspired by FastAPI's `yield` and Hono's
