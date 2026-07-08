@@ -1,4 +1,4 @@
-import { app } from '../src/app.tsx'
+import { app, resetStore } from '../src/app.tsx'
 
 // Compile the app for maximum performance
 app.compile()
@@ -42,6 +42,9 @@ Deno.bench('PUT /todos/1 (Update todo)', async () => {
 })
 
 Deno.bench('DELETE /todos/2 (Delete todo)', async () => {
+  // Ensure the item always exists regardless of prior POST benchmark pollution.
+  // resetStore() is O(1) (Map.clear + 2 sets) and does not skew the measurement.
+  resetStore()
   const req = new Request('http://localhost/todos/2', {
     method: 'DELETE',
   })

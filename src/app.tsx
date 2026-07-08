@@ -4,12 +4,24 @@ import { openapi } from '@goddo/openapi'
 import { llmstxt } from '@goddo/llms-txt'
 import { renderPage, type Todo } from './page.tsx'
 
-// In-memory store for demonstration
-const todos: Todo[] = [
-  { id: 1, title: 'Buy groceries', completed: true },
-  { id: 2, title: 'Walk the dog', completed: false },
+// Seed data — single source of truth for the initial store state
+const SEED: [number, Todo][] = [
+  [1, { id: 1, title: 'Buy groceries', completed: true }],
+  [2, { id: 2, title: 'Walk the dog', completed: false }],
 ]
-let idCounter = 3
+
+// In-memory store (Map = O(1) lookup/delete, analogous to a DB primary-key index)
+const todos = new Map<number, Todo>(SEED)
+let idCounter = SEED.length + 1
+
+const todosArray = () => [...todos.values()]
+
+/** Resets the store to its initial seed state. Used by benchmarks to avoid cross-benchmark pollution. */
+export function resetStore() {
+  todos.clear()
+  for (const [k, v] of SEED) todos.set(k, { ...v })
+  idCounter = SEED.length + 1
+}
 
 export const app = new Goddo()
   .use(
@@ -25,14 +37,14 @@ export const app = new Goddo()
   }))
   .use(html())
   .get('/', ({ redirect }) => redirect('/docs'))
-  .get('/page', () => renderPage(todos))
+  .get('/page', () => renderPage(todosArray()))
   .group('/todos', (app) =>
     app
-      .get('/', () => todos, {
+      .get('/', () => todosArray(), {
         detail: { summary: 'List all todos', tags: ['Todos'] },
       })
       .get('/:id', ({ params: { id } }) => {
-        const todo = todos.find((t) => t.id === id)
+        const todo = todos.get(id)
         if (!todo) return new Response('Todo not found', { status: 404 })
         return todo
       }, {
@@ -41,14 +53,14 @@ export const app = new Goddo()
       })
       .post('/', ({ body }) => {
         const todo: Todo = { id: idCounter++, title: body.title, completed: false }
-        todos.push(todo)
+        todos.set(todo.id, todo)
         return todo
       }, {
         body: t.Object({ title: t.String() }),
         detail: { summary: 'Create a new todo', tags: ['Todos'] },
       })
       .put('/:id', ({ params: { id }, body }) => {
-        const todo = todos.find((t) => t.id === id)
+        const todo = todos.get(id)
         if (!todo) return new Response('Todo not found', { status: 404 })
         if (body.title !== undefined) todo.title = body.title
         if (body.completed !== undefined) todo.completed = body.completed
@@ -62,9 +74,8 @@ export const app = new Goddo()
         detail: { summary: 'Update a todo', tags: ['Todos'] },
       })
       .delete('/:id', ({ params: { id } }) => {
-        const index = todos.findIndex((t) => t.id === id)
-        if (index === -1) return new Response('Todo not found', { status: 404 })
-        todos.splice(index, 1)
+        if (!todos.has(id)) return new Response('Todo not found', { status: 404 })
+        todos.delete(id)
         return { success: true }
       }, {
         params: t.Object({ id: t.Numeric() }),
