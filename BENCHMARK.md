@@ -25,13 +25,13 @@ deno bench benchmarks/
 
 | Benchmark                              | Time/iter (avg) | Iter/s  | (min … max)        | p75    | p99     | p995    |
 | -------------------------------------- | --------------- | ------- | ------------------ | ------ | ------- | ------- |
-| **GET /** (Redirect)                   | 1.8 µs          | 565,900 | ( 1.3 µs … 2.5 ms) | 1.5 µs | 2.5 µs  | 3.3 µs  |
-| **GET /page** (HTML rendering)         | 8.6 µs          | 116,700 | ( 7.3 µs … 1.2 ms) | 8.4 µs | 14.3 µs | 19.1 µs |
-| **GET /todos/** (List todos)           | 2.0 µs          | 501,800 | ( 1.9 µs … 2.2 µs) | 2.0 µs | 2.2 µs  | 2.2 µs  |
-| **GET /todos/1** (Get a specific todo) | 2.3 µs          | 428,000 | ( 2.2 µs … 2.6 µs) | 2.4 µs | 2.6 µs  | 2.6 µs  |
-| **POST /todos/** (Create todo)         | 3.4 µs          | 290,000 | ( 3.3 µs … 4.1 µs) | 3.5 µs | 4.1 µs  | 4.1 µs  |
-| **PUT /todos/1** (Update todo)         | 4.0 µs          | 247,100 | ( 3.9 µs … 4.5 µs) | 4.1 µs | 4.5 µs  | 4.5 µs  |
-| **DELETE /todos/2** (Delete todo)      | 1.7 ms          | 605.8   | ( 1.6 ms … 2.0 ms) | 1.7 ms | 1.7 ms  | 1.9 ms  |
+| **GET /** (Redirect)                   | 1.7 µs          | 592,800 | ( 1.2 µs … 2.1 ms)  | 1.5 µs | 2.3 µs  | 3.0 µs  |
+| **GET /page** (HTML rendering)         | 7.6 µs          | 130,900 | ( 6.4 µs … 725.8 µs)| 7.5 µs | 12.9 µs | 17.9 µs |
+| **GET /todos/** (List todos)           | 1.9 µs          | 527,700 | ( 1.8 µs … 2.0 µs)  | 1.9 µs | 2.0 µs  | 2.0 µs  |
+| **GET /todos/1** (Get a specific todo) | 2.2 µs          | 455,900 | ( 2.1 µs … 2.5 µs)  | 2.2 µs | 2.5 µs  | 2.5 µs  |
+| **POST /todos/** (Create todo)         | 3.3 µs          | 302,100 | ( 3.2 µs … 3.9 µs)  | 3.3 µs | 3.9 µs  | 3.9 µs  |
+| **PUT /todos/1** (Update todo)         | 4.0 µs          | 247,900 | ( 3.9 µs … 4.5 µs)  | 4.1 µs | 4.5 µs  | 4.5 µs  |
+| **DELETE /todos/2** (Delete todo)      | 1.7 ms          | 600.1   | ( 1.6 ms … 3.8 ms)  | 1.7 ms | 2.4 ms  | 3.2 ms  |
 
 ### ElysiaJS Performance Results (Bun 1.1.43 / Apple M1)
 
@@ -47,3 +47,5 @@ For comparison, here is the performance of the exact same API built with
 | **POST /todos/** (Create todo)         | 3.48 µs         | (2.54 µs … 1.04 ms)     | 15.29 µs  |
 | **PUT /todos/1** (Update todo)         | 4.11 µs         | (3.17 µs … 617.42 µs)   | 13.38 µs  |
 | **DELETE /todos/2** (Delete todo)      | 312.38 µs       | (227.88 µs … 2.78 ms)   | 935.04 µs |
+
+> **Note on `DELETE` performance:** The unusually high time for the `DELETE` endpoint in both Goddo and Elysia is a benchmark artifact. The preceding `POST` benchmark injects hundreds of thousands of items into the shared `todos` array. Consequently, the `DELETE` benchmark forces `findIndex` to perform an $O(N)$ linear scan over a massive array on every iteration looking for a deleted item, skewing the framework's actual routing performance.

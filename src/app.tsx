@@ -31,9 +31,9 @@ export const app = new Goddo()
       .get('/', () => todos, {
         detail: { summary: 'List all todos', tags: ['Todos'] },
       })
-      .get('/:id', ({ params: { id }, error }) => {
+      .get('/:id', ({ params: { id } }) => {
         const todo = todos.find((t) => t.id === id)
-        if (!todo) throw error(404, 'Todo not found')
+        if (!todo) return new Response('Todo not found', { status: 404 })
         return todo
       }, {
         params: t.Object({ id: t.Numeric() }),
@@ -47,9 +47,9 @@ export const app = new Goddo()
         body: t.Object({ title: t.String() }),
         detail: { summary: 'Create a new todo', tags: ['Todos'] },
       })
-      .put('/:id', ({ params: { id }, body, error }) => {
+      .put('/:id', ({ params: { id }, body }) => {
         const todo = todos.find((t) => t.id === id)
-        if (!todo) throw error(404, 'Todo not found')
+        if (!todo) return new Response('Todo not found', { status: 404 })
         if (body.title !== undefined) todo.title = body.title
         if (body.completed !== undefined) todo.completed = body.completed
         return todo
@@ -61,9 +61,9 @@ export const app = new Goddo()
         }),
         detail: { summary: 'Update a todo', tags: ['Todos'] },
       })
-      .delete('/:id', ({ params: { id }, error }) => {
+      .delete('/:id', ({ params: { id } }) => {
         const index = todos.findIndex((t) => t.id === id)
-        if (index === -1) throw error(404, 'Todo not found')
+        if (index === -1) return new Response('Todo not found', { status: 404 })
         todos.splice(index, 1)
         return { success: true }
       }, {
