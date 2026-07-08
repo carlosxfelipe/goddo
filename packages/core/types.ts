@@ -1,3 +1,8 @@
+/**
+ * @module
+ * types.ts module for @goddo/core
+ */
+
 import type { Context } from './context.ts'
 import type { Static, TSchema } from './schema.ts'
 import type { Goddo } from './index.ts'

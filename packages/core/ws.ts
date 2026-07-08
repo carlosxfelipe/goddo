@@ -1,3 +1,8 @@
+/**
+ * @module
+ * ws.ts module for @goddo/core
+ */
+
 import type { TSchema } from './schema.ts'
 import type { DocumentDetail, MaybePromise } from './types.ts'
 

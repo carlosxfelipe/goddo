@@ -1,3 +1,8 @@
+/**
+ * @module
+ * compile.ts module for @goddo/core
+ */
+
 import { validate } from './schema.ts'
 import { mapResponse } from './handler.ts'
 import { cleanupMap, parseBody, runCleanups } from './context.ts'

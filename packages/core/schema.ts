@@ -1,3 +1,8 @@
+/**
+ * @module
+ * schema.ts module for @goddo/core
+ */
+
 import { ValidationError } from './error.ts'
 
 // ---------------------------------------------------------------------------
@@ -68,68 +73,90 @@ export interface ObjectOptions extends SchemaOptions {
 
 /** Schema representing a string. */
 export interface TString extends TSchema, StringOptions {
+  /** Inferred TypeScript type. */
   static: string
+  /** String literal type identifier. */
   type: 'string'
 }
 
 /** Schema representing a number. */
 export interface TNumber extends TSchema, NumberOptions {
+  /** Inferred TypeScript type. */
   static: number
+  /** String literal type identifier. */
   type: 'number'
 }
 
 /** Schema representing an integer. */
 export interface TInteger extends TSchema, NumberOptions {
+  /** Inferred TypeScript type. */
   static: number
+  /** String literal type identifier. */
   type: 'integer'
 }
 
 /** Schema representing a number that accepts a coercible string (useful for params/query and body). */
 export interface TNumeric extends TSchema, NumberOptions {
+  /** Inferred TypeScript type. */
   static: number
+  /** String literal type identifier. */
   type: 'numeric'
 }
 
 /** Schema representing a boolean. */
 export interface TBoolean extends TSchema {
+  /** Inferred TypeScript type. */
   static: boolean
+  /** String literal type identifier. */
   type: 'boolean'
 }
 
 /** Schema representing a null value. */
 export interface TNull extends TSchema {
+  /** Inferred TypeScript type. */
   static: null
+  /** String literal type identifier. */
   type: 'null'
 }
 
 /** Schema representing any value. */
 export interface TAny extends TSchema {
+  /** Inferred TypeScript type. */
   static: unknown
+  /** String literal type identifier. */
   type: 'any'
 }
 
 /** Schema representing an unknown value. */
 export interface TUnknown extends TSchema {
+  /** Inferred TypeScript type. */
   static: unknown
+  /** String literal type identifier. */
   type: 'unknown'
 }
 
 /** Schema representing a File object. */
 export interface TFile extends TSchema {
+  /** Inferred TypeScript type. */
   static: File
+  /** String literal type identifier. */
   type: 'file'
 }
 
 /** Schema representing a Date object. */
 export interface TDate extends TSchema {
+  /** Inferred TypeScript type. */
   static: Date
+  /** String literal type identifier. */
   type: 'date'
 }
 
 /** Schema representing an exact literal value. */
 export interface TLiteral<T extends string | number | boolean = string | number | boolean>
   extends TSchema {
+  /** Inferred TypeScript type. */
   static: T
+  /** String literal type identifier. */
   type: 'literal'
   /** The constant literal value. */
   const: T
@@ -137,7 +164,9 @@ export interface TLiteral<T extends string | number | boolean = string | number 
 
 /** Schema representing a union of multiple schemas. */
 export interface TUnion<T extends TSchema[] = TSchema[]> extends TSchema {
+  /** Inferred TypeScript type. */
   static: T[number]['static']
+  /** String literal type identifier. */
   type: 'union'
   /** The possible schemas in this union. */
   anyOf: T
@@ -146,7 +175,9 @@ export interface TUnion<T extends TSchema[] = TSchema[]> extends TSchema {
 /** Schema representing an enum of specific values. */
 export interface TEnum<T extends Record<string, string | number> = Record<string, string | number>>
   extends TSchema {
+  /** Inferred TypeScript type. */
   static: T[keyof T]
+  /** String literal type identifier. */
   type: 'union'
   /** The possible schemas derived from enum values. */
   anyOf: TSchema[]
@@ -154,7 +185,9 @@ export interface TEnum<T extends Record<string, string | number> = Record<string
 
 /** Schema representing an array of items. */
 export interface TArray<T extends TSchema = TSchema> extends TSchema, ArrayOptions {
+  /** Inferred TypeScript type. */
   static: T['static'][]
+  /** String literal type identifier. */
   type: 'array'
   /** The schema for the array items. */
   items: T
@@ -179,7 +212,9 @@ export type StaticProperties<P extends TProperties> = Prettify<
 
 /** Schema representing an object with specific properties. */
 export interface TObject<P extends TProperties = TProperties> extends TSchema, ObjectOptions {
+  /** Inferred TypeScript type. */
   static: StaticProperties<P>
+  /** String literal type identifier. */
   type: 'object'
   /** The schemas for each object property. */
   properties: P
@@ -219,7 +254,12 @@ const DateSchema = (options: SchemaOptions = {}): TDate => ({ ...options, type: 
 const Literal = <const T extends string | number | boolean>(
   value: T,
   options: SchemaOptions = {},
-): TLiteral<T> => ({ ...options, type: 'literal', const: value }) as TLiteral<T>
+): TLiteral<T> =>
+  ({
+    ...options,
+    type: 'literal',
+    const: value,
+  }) as TLiteral<T>
 
 const Union = <const T extends TSchema[]>(anyOf: T, options: SchemaOptions = {}): TUnion<T> =>
   ({ ...options, type: 'union', anyOf }) as TUnion<T>

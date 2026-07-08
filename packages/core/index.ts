@@ -1,3 +1,8 @@
+/**
+ * @module
+ * index.ts module for @goddo/core
+ */
+
 import { Router } from './router.ts'
 import { createContext, parseBody, runCleanups } from './context.ts'
 import type { Context } from './context.ts'
@@ -785,6 +790,7 @@ export type { CompiledHandler, CompiledHooks, CompiledRoute } from './compile.ts
 export { Cookie, CookieJar, signCookie, verifyCookie } from './cookie.ts'
 export type { CookieAttributes, CookieProxy } from './cookie.ts'
 export { Router } from './router.ts'
+export type { RadixNode, RouteData, RouteMatch } from './router.ts'
 export type { Context, SetContext } from './context.ts'
 export { GoddoWebSocket } from './ws.ts'
 export type { TopicMap, WSOptions } from './ws.ts'

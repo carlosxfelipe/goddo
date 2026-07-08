@@ -1,17 +1,33 @@
+/**
+ * @module
+ * router.ts module for @goddo/core
+ */
+
 import type { Handler, HTTPMethod, LocalHooks } from './types.ts'
 
-interface RouteData {
+/** Data stored at a matching route node. */
+export interface RouteData {
+  /** The handler function. */
   handler: Handler
+  /** The local hooks. */
   hooks: LocalHooks
 }
 
-interface RadixNode {
+/** Internal Radix Tree node structure. */
+export interface RadixNode {
+  /** The string part of the path segment. */
   part: string
+  /** The handlers registered at this node. */
   store: Partial<Record<HTTPMethod, RouteData>> | null
+  /** Static child nodes. */
   static: Map<string, RadixNode> | null
+  /** Parameterized child node. */
   param: RadixNode | null
+  /** Name of the parameter. */
   paramName: string | null
+  /** Wildcard fallback handlers. */
   wildcard: RouteData | null
+  /** Wildcard handlers by method. */
   wildcardMethod: Partial<Record<HTTPMethod, RouteData>> | null
 }
 
@@ -25,15 +41,30 @@ const createNode = (part = ''): RadixNode => ({
   wildcardMethod: null,
 })
 
+/** Represents a matched route during find(). */
 export interface RouteMatch {
+  /** The resolved handler function. */
   handler: Handler
+  /** The resolved local hooks. */
   hooks: LocalHooks
+  /** The extracted path parameters. */
   params: Record<string, string>
 }
 
+/**
+ * High-performance Radix Tree router used by Goddo.
+ */
 export class Router {
+  /** The root node of the routing tree. */
   root: RadixNode = createNode()
 
+  /**
+   * Registers a new route in the tree.
+   * @param method The HTTP method for the route.
+   * @param path The URL path pattern.
+   * @param handler The function to handle the request.
+   * @param hooks Local lifecycle hooks for this specific route.
+   */
   add(method: HTTPMethod, path: string, handler: Handler, hooks: LocalHooks = {}): void {
     if (path === '') path = '/'
 
@@ -70,6 +101,12 @@ export class Router {
     node.store[method] = { handler, hooks }
   }
 
+  /**
+   * Finds a matching route for the given HTTP method and path.
+   * @param method The requested HTTP method.
+   * @param path The requested URL path.
+   * @returns The route match details (handler, hooks, params) or null if not found.
+   */
   find(method: HTTPMethod, path: string): RouteMatch | null {
     const segments = path.split('/').filter((segment) => segment !== '')
     const params: Record<string, string> = {}

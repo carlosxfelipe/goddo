@@ -1,3 +1,8 @@
+/**
+ * @module
+ * error.ts module for @goddo/core
+ */
+
 /** Base class for all Goddo framework errors. */
 export class GoddoError extends Error {
   /** The specific string-based error code. */

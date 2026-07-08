@@ -1,3 +1,8 @@
+/**
+ * @module
+ * handler.ts module for @goddo/core
+ */
+
 import type { SetContext } from './context.ts'
 import type { CookieJar } from './cookie.ts'
 

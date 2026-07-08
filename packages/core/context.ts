@@ -1,3 +1,8 @@
+/**
+ * @module
+ * context.ts module for @goddo/core
+ */
+
 import { GoddoError, ParseError } from './error.ts'
 import { CookieJar } from './cookie.ts'
 import type { CookieProxy } from './cookie.ts'
