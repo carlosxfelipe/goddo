@@ -36,7 +36,7 @@ export const app = new Goddo()
     description: 'An API to manage your tasks',
   }))
   .use(html())
-  .get('/', ({ redirect }) => redirect('/docs'))
+  .get('/', ({ redirect }) => redirect('/page'))
   .get('/page', () => renderPage(todosArray()))
   .group('/todos', (app) =>
     app
