@@ -37,6 +37,13 @@ export const app = new Goddo()
   }))
   .use(html())
   .get('/', ({ redirect }) => redirect('/page'))
+  .get(
+    '/client.js',
+    async () =>
+      new Response(await Deno.readTextFile('./src/client.js'), {
+        headers: { 'content-type': 'application/javascript' },
+      }),
+  )
   .get('/page', () => renderPage(todosArray()))
   .group('/todos', (app) =>
     app
