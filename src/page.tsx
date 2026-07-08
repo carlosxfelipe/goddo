@@ -14,6 +14,7 @@ export function renderPage(todos: Todo[]) {
           href='https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css'
         />
         <script src='https://unpkg.com/@phosphor-icons/web'></script>
+        <script defer src='https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js'></script>
         <style>
           {`html { font-size: 14px; }`}
         </style>
@@ -25,9 +26,15 @@ export function renderPage(todos: Todo[]) {
               <i class='ph ph-list-checks' style='color: var(--pico-primary);'></i> My Todos
             </h1>
 
-            <form id='add-form'>
+            <form
+              x-data="{ title: '' }"
+              {...{
+                '@submit.prevent':
+                  "fetch('/todos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) }).then(() => location.reload())",
+              }}
+            >
               <fieldset role='group'>
-                <input type='text' id='new-todo' placeholder='What needs to be done?' required />
+                <input type='text' x-model='title' placeholder='What needs to be done?' required />
                 <button
                   type='submit'
                   style='display: flex; align-items: center; justify-content: center; gap: 0.25rem;'
@@ -46,7 +53,7 @@ export function renderPage(todos: Todo[]) {
                         <input
                           type='checkbox'
                           checked={todo.completed}
-                          onclick={`toggleTodo(${todo.id}, ${todo.completed})`}
+                          x-on:change={`fetch('/todos/${todo.id}', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: !${todo.completed} }) }).then(() => location.reload())`}
                         />
                         {todo.completed ? <s>{todo.title}</s> : todo.title}
                       </label>
@@ -55,14 +62,15 @@ export function renderPage(todos: Todo[]) {
                       <div style='display: flex; gap: 0.5rem; justify-content: flex-end;'>
                         <button
                           type='button'
-                          onclick={`editTodo(${todo.id}, '${todo.title.replace(/'/g, "\\'")}')`}
+                          x-data={`{ currentTitle: '${todo.title.replace(/'/g, "\\'")}' }`}
+                          x-on:click={`let newTitle = prompt('Edit todo:', currentTitle); if (newTitle !== null && newTitle.trim() !== '') { fetch('/todos/${todo.id}', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: newTitle.trim() }) }).then(() => location.reload()) }`}
                           style='margin-bottom: 0; min-width: 90px; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background-color: var(--pico-secondary-background); border-color: var(--pico-secondary-border);'
                         >
                           <i class='ph ph-pencil-simple'></i> Edit
                         </button>
                         <button
                           type='button'
-                          onclick={`deleteTodo(${todo.id})`}
+                          x-on:click={`fetch('/todos/${todo.id}', { method: 'DELETE' }).then(() => location.reload())`}
                           style='margin-bottom: 0; min-width: 90px; display: flex; align-items: center; justify-content: center; gap: 0.25rem;'
                         >
                           <i class='ph ph-trash'></i> Delete
@@ -94,8 +102,6 @@ export function renderPage(todos: Todo[]) {
             </a>
           </article>
         </main>
-
-        <script src='/client.js'></script>
       </body>
     </html>
   )
