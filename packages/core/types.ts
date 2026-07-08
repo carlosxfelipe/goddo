@@ -2,9 +2,11 @@ import type { Context } from './context.ts'
 import type { Static, TSchema } from './schema.ts'
 import type { Goddo } from './index.ts'
 
+/** Represents a Goddo instance with any route registry and store. */
 // deno-lint-ignore no-explicit-any
 export type AnyGoddo = Goddo<any, any>
 
+/** Standard HTTP methods supported by the framework. */
 export type HTTPMethod =
   | 'GET'
   | 'POST'
@@ -17,28 +19,40 @@ export type HTTPMethod =
   | 'TRACE'
   | 'ALL'
 
+/** Utility type for synchronous or asynchronous returns. */
 export type MaybePromise<T> = T | Promise<T>
 
+/** A standard route handler function. */
 export type Handler<C = Context> = (context: C) => MaybePromise<unknown>
 
+/** Defines the expected response schema, optionally mapped by HTTP status code. */
 export type ResponseSchema = TSchema | Record<number | string, TSchema>
 
+/** Schema definitions for validating a route's inputs and outputs. */
 export interface RouteSchema {
+  /** Schema for the request body. */
   body?: TSchema
+  /** Schema for the query string parameters. */
   query?: TSchema
+  /** Schema for the URL path parameters. */
   params?: TSchema
+  /** Schema for the request headers. */
   headers?: TSchema
+  /** Schema for the HTTP response. */
   response?: ResponseSchema
+  /** Schema for the cookies. */
   cookie?: TSchema
 }
 
-type ParamsFromPath<Path extends string> = Path extends `${string}:${infer Rest}`
+/** Extracts URL parameters from a path string. */
+export type ParamsFromPath<Path extends string> = Path extends `${string}:${infer Rest}`
   ? Rest extends `${infer Param}/${infer Tail}`
     ? { [K in Param]: string } & ParamsFromPath<`/${Tail}`>
   : { [K in Rest]: string }
   : Path extends `${string}*` ? { '*': string }
   : Record<string, string>
 
+/** Infers the full context type for a route based on its path and schema. */
 export type InferContext<
   S extends RouteSchema = RouteSchema,
   Path extends string = string,
@@ -51,73 +65,120 @@ export type InferContext<
     headers: S['headers'] extends TSchema ? Static<S['headers']> : Record<string, string>
   }
 
+/** Storage for all lifecycle hook handlers. */
 export interface LifeCycleStore {
+  /** Hook running before request parsing. */
   request: Handler[]
+  /** Hook for custom body parsing. */
   parse: Handler[]
+  /** Hook for transforming the context before validation. */
   transform: Handler[]
+  /** Hook for deriving new properties on the context. */
   derive: Handler[]
+  /** Hook running immediately before the main route handler. */
   beforeHandle: Handler[]
+  /** Hook for resolving values. */
   resolve: Handler[]
+  /** Hook running immediately after the main route handler. */
   afterHandle: Handler[]
+  /** Hook for transforming the response payload. */
   mapResponse: Handler[]
+  /** Hook running before sending the final response. */
   afterResponse: Handler[]
+  /** Hook for handling errors. */
   error: ErrorHandler[]
+  /** Hook running when the server starts. */
   start: VoidHandler[]
+  /** Hook running when the server stops. */
   stop: VoidHandler[]
 }
 
+/** Identifies a specific lifecycle hook event. */
 export type LifeCycleEvent = keyof LifeCycleStore
 
+/** A handler specifically tailored for dealing with errors. */
 export type ErrorHandler = (
   context: Context & { error: Error; code: string },
 ) => MaybePromise<unknown>
 
+/** A lifecycle handler that returns no value, used for start/stop events. */
 export type VoidHandler = (app: unknown) => MaybePromise<void>
 
+/** OpenAPI document details for a specific route. */
 export interface DocumentDetail {
+  /** Short summary of what the route does. */
   summary?: string
+  /** Detailed description of the route. */
   description?: string
+  /** OpenAPI tags for grouping. */
   tags?: string[]
+  /** Unique operation identifier. */
   operationId?: string
+  /** Indicates if the route is deprecated. */
   deprecated?: boolean
+  /** Indicates if the route should be hidden from docs. */
   hide?: boolean
+  /** Any other OpenAPI operation properties. */
   [key: string]: unknown
 }
 
 /** Factory returned by a macro definition — returns lifecycle hooks to merge. */
 export type MacroFactory = (value: unknown) => Partial<LocalHooks>
 
+/** A map of macro names to their corresponding factories. */
 export type MacroDefinitions = Record<string, MacroFactory>
 
+/** Local hooks and configurations applied to a specific route. */
 export interface LocalHooks extends RouteSchema {
+  /** OpenAPI documentation details. */
   detail?: DocumentDetail
+  /** Local parse hook. */
   parse?: Handler | Handler[]
+  /** Local transform hook. */
   transform?: Handler | Handler[]
+  /** Local beforeHandle hook. */
   beforeHandle?: Handler | Handler[]
+  /** Local afterHandle hook. */
   afterHandle?: Handler | Handler[]
+  /** Local mapResponse hook. */
   mapResponse?: Handler | Handler[]
+  /** Local afterResponse hook. */
   afterResponse?: Handler | Handler[]
+  /** Local error hook. */
   error?: ErrorHandler | ErrorHandler[]
-  // Allow arbitrary keys for macro-defined options
+  /** Allow arbitrary keys for macro-defined options */
   [key: string]: unknown
 }
 
+/** Represents a compiled route entry in the framework. */
 export interface Route {
+  /** The HTTP method for the route. */
   method: HTTPMethod
+  /** The URL path pattern. */
   path: string
+  /** The main handler function. */
   handler: Handler
+  /** The local hooks and configuration for this route. */
   hooks: LocalHooks
 }
 
+/** Options for configuring the HTTP server listener. */
 export interface ListenOptions {
+  /** The port to listen on. */
   port?: number
+  /** The hostname to bind to. */
   hostname?: string
+  /** Callback fired when the server successfully starts listening. */
   onListen?: (params: { hostname: string; port: number }) => void
 }
 
+/** Global configuration options for the Goddo instance. */
 export interface GoddoConfig {
+  /** The application name. */
   name?: string
+  /** A global URL prefix for all routes. */
   prefix?: string
+  /** Secret key(s) used for signing and verifying cookies. */
   cookieSecret?: string | string[]
 }
 
@@ -127,9 +188,13 @@ export interface GoddoConfig {
 
 /** Shape of a single registered route's I/O, inferred from its schemas. */
 export interface RouteEntry {
+  /** The expected body type. */
   body?: unknown
+  /** The expected query parameters type. */
   query?: unknown
+  /** The expected path parameters type. */
   params?: unknown
+  /** The returned response type. */
   response?: unknown
 }
 
@@ -178,7 +243,7 @@ export type TreatyReservedSegment =
  * Splits a path string into its URL segments as a string union (strips leading `/`).
  * `"/user/get/info"` → `"user" | "get" | "info"`
  */
-type PathSegments<S extends string> = S extends `/${infer Rest}` ? PathSegments<Rest>
+export type PathSegments<S extends string> = S extends `/${infer Rest}` ? PathSegments<Rest>
   : S extends `${infer Head}/${infer Tail}` ? Head | PathSegments<Tail>
   : S
 
@@ -189,8 +254,8 @@ type PathSegments<S extends string> = S extends `/${infer Rest}` ? PathSegments<
  * Uses a distributive conditional type so each member of the `PathSegments<Path>`
  * union is checked individually.
  */
-type ReservedSegmentsIn<Path extends string> = PathSegments<Path> extends infer Seg extends string
-  ? Seg extends TreatyReservedSegment ? Seg
+export type ReservedSegmentsIn<Path extends string> = PathSegments<Path> extends
+  infer Seg extends string ? Seg extends TreatyReservedSegment ? Seg
   : never
   : never
 

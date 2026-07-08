@@ -31,20 +31,33 @@ const toArray = <T>(value?: T | T[]): T[] => {
   return Array.isArray(value) ? value : [value]
 }
 
+/**
+ * The core Goddo framework application instance.
+ * It handles route registration, plugin mounting, lifecycle events, and HTTP requests.
+ */
 export class Goddo<
   InstanceContext extends Record<string, unknown> = Record<never, never>,
   Routes extends RouteRegistry = Record<never, never>,
 > {
+  /** Internal typing artifact for inference (do not use at runtime). */
   declare readonly _context: InstanceContext
+  /** Internal typing artifact for routing (do not use at runtime). */
   declare readonly _routes: Routes
 
+  /** Global application configuration. */
   config: GoddoConfig
+  /** The Radix-based router instance. */
   router: Router = new Router()
+  /** Flat list of all registered routes. */
   routes: Route[] = []
+  /** Reference to the active Deno HTTP server, if listening. */
   server: Deno.HttpServer | null = null
 
+  /** Shared state injected into all route contexts. */
   store: Record<string, unknown> = {}
+  /** Custom functions/properties decorated onto all route contexts. */
   decorators: Record<string, unknown> = {}
+  /** Map of registered macro definitions. */
   macros: MacroDefinitions = {}
 
   /** Compiled handler — set by compile(), used by listen() */
@@ -53,6 +66,7 @@ export class Goddo<
   /** Shared pub/sub topic registry for all WebSocket connections on this instance. */
   topics: TopicMap = new Map()
 
+  /** Container for all global lifecycle event hooks. */
   event: LifeCycleStore = {
     request: [],
     parse: [],
@@ -68,10 +82,15 @@ export class Goddo<
     stop: [],
   }
 
+  /**
+   * Initializes a new Goddo application instance.
+   * @param config Optional global configuration settings.
+   */
   constructor(config: GoddoConfig = {}) {
     this.config = config
   }
 
+  /** Internal helper to register a route and expand its macros. */
   private add(method: HTTPMethod, path: string, handler: Handler, hooks: LocalHooks = {}): this {
     const prefixed = `${this.config.prefix ?? ''}${path}` || '/'
 
@@ -114,6 +133,7 @@ export class Goddo<
     return result
   }
 
+  /** Registers a GET route. */
   get<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
     handler: Handler<InferContext<S, Path> & InstanceContext>,
@@ -123,6 +143,7 @@ export class Goddo<
     return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'GET', Path, S>>
   }
 
+  /** Registers a POST route. */
   post<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
     handler: Handler<InferContext<S, Path> & InstanceContext>,
@@ -132,6 +153,7 @@ export class Goddo<
     return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'POST', Path, S>>
   }
 
+  /** Registers a PUT route. */
   put<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
     handler: Handler<InferContext<S, Path> & InstanceContext>,
@@ -141,6 +163,7 @@ export class Goddo<
     return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'PUT', Path, S>>
   }
 
+  /** Registers a DELETE route. */
   delete<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
     handler: Handler<InferContext<S, Path> & InstanceContext>,
@@ -150,6 +173,7 @@ export class Goddo<
     return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'DELETE', Path, S>>
   }
 
+  /** Registers a PATCH route. */
   patch<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
     handler: Handler<InferContext<S, Path> & InstanceContext>,
@@ -159,6 +183,7 @@ export class Goddo<
     return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'PATCH', Path, S>>
   }
 
+  /** Registers a HEAD route. */
   head<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
     handler: Handler<InferContext<S, Path> & InstanceContext>,
@@ -168,6 +193,7 @@ export class Goddo<
     return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'HEAD', Path, S>>
   }
 
+  /** Registers an OPTIONS route. */
   options<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
     handler: Handler<InferContext<S, Path> & InstanceContext>,
@@ -177,6 +203,7 @@ export class Goddo<
     return this as unknown as Goddo<InstanceContext, AddRoute<Routes, 'OPTIONS', Path, S>>
   }
 
+  /** Registers a route that matches ALL HTTP methods. */
   all<const Path extends string, const S extends LocalHooks>(
     path: Path & AssertNoReservedSegment<Path>,
     handler: Handler<InferContext<S, Path> & InstanceContext>,
@@ -262,6 +289,9 @@ export class Goddo<
     )
   }
 
+  /**
+   * Registers a route dynamically by HTTP method.
+   */
   route<const M extends HTTPMethod, const Path extends string, const S extends LocalHooks>(
     method: M,
     path: Path,
@@ -272,11 +302,17 @@ export class Goddo<
     return this as unknown as Goddo<InstanceContext, AddRoute<Routes, M, Path, S>>
   }
 
+  /**
+   * Injects shared state into all route contexts.
+   */
   state<K extends string, V>(key: K, value: V): Goddo<InstanceContext & { [key in K]: V }, Routes> {
     this.store[key] = value
     return this as unknown as Goddo<InstanceContext & { [key in K]: V }, Routes>
   }
 
+  /**
+   * Decorates all route contexts with custom properties or functions.
+   */
   decorate<K extends string, V>(
     key: K,
     value: V,
@@ -309,6 +345,7 @@ export class Goddo<
   use<PluginContext extends Record<string, unknown>, PluginRoutes extends RouteRegistry>(
     plugin: Goddo<PluginContext, PluginRoutes>,
   ): Goddo<InstanceContext & PluginContext, Routes & PluginRoutes>
+  /** Mounts a Goddo plugin function. */
   use<
     Plugin extends AnyGoddo | ((app: this) => AnyGoddo),
   >(
@@ -336,6 +373,7 @@ export class Goddo<
     return this
   }
 
+  /** Groups multiple routes under a common URL prefix. */
   group(prefix: string, configure: (app: Goddo) => Goddo): this {
     const instance = configure(new Goddo({ prefix }))
 
@@ -444,36 +482,43 @@ export class Goddo<
     return this as unknown as Goddo<InstanceContext & Returned, Routes>
   }
 
+  /** Registers a global request hook (runs before everything else). */
   onRequest(handler: Handler<Context & InstanceContext>): this {
     this.event.request.push(handler as Handler)
     return this
   }
 
+  /** Registers a global custom parsing hook. */
   onParse(handler: Handler<Context & InstanceContext>): this {
     this.event.parse.push(handler as Handler)
     return this
   }
 
+  /** Registers a global context transform hook (runs before validation). */
   onTransform(handler: Handler<Context & InstanceContext>): this {
     this.event.transform.push(handler as Handler)
     return this
   }
 
+  /** Registers a global beforeHandle hook (runs after validation, before the route handler). */
   onBeforeHandle(handler: Handler<Context & InstanceContext>): this {
     this.event.beforeHandle.push(handler as Handler)
     return this
   }
 
+  /** Registers a global afterHandle hook (runs right after the route handler). */
   onAfterHandle(handler: Handler<Context & InstanceContext & { response: unknown }>): this {
     this.event.afterHandle.push(handler as Handler)
     return this
   }
 
+  /** Registers a global afterResponse hook (runs before the response is finally sent). */
   onAfterResponse(handler: Handler<Context & InstanceContext & { response: Response }>): this {
     this.event.afterResponse.push(handler as Handler)
     return this
   }
 
+  /** Registers a global error handler hook. */
   onError(
     handler: (context: Context & InstanceContext & { error: Error; code: string }) => unknown,
   ): this {
@@ -481,11 +526,13 @@ export class Goddo<
     return this
   }
 
+  /** Registers a callback that fires when the server starts. */
   onStart(handler: VoidHandler): this {
     this.event.start.push(handler)
     return this
   }
 
+  /** Registers a callback that fires when the server stops. */
   onStop(handler: VoidHandler): this {
     this.event.stop.push(handler)
     return this
@@ -507,6 +554,7 @@ export class Goddo<
     return this
   }
 
+  /** Processes an incoming HTTP Request and resolves it to a Response. */
   handle = async (request: Request, info?: Deno.ServeHandlerInfo | null): Promise<Response> => {
     // Use compiled handler if available (AOT fast path)
     if (this.compiledHandler) return this.compiledHandler(request, info)
@@ -654,6 +702,11 @@ export class Goddo<
     }
   }
 
+  /**
+   * Starts the internal Deno HTTP server.
+   * @param options Configuration options or just a port number.
+   * @param callback Optional callback invoked after the server has successfully started listening.
+   */
   listen(options: number | ListenOptions, callback?: (server: Deno.HttpServer) => void): this {
     const config: ListenOptions = typeof options === 'number' ? { port: options } : options
 
@@ -678,6 +731,7 @@ export class Goddo<
     return this
   }
 
+  /** Gracefully stops the HTTP server. */
   async stop(): Promise<void> {
     if (!this.server) return
     await this.server.shutdown()
@@ -695,26 +749,73 @@ export {
   ValidationError,
 } from './error.ts'
 export { t, validate } from './schema.ts'
-export type { Static, TSchema } from './schema.ts'
+export type {
+  ArrayOptions,
+  NumberOptions,
+  ObjectOptions,
+  OptionalKeys,
+  Prettify,
+  RequiredKeys,
+  SchemaOptions,
+  Static,
+  StaticProperties,
+  StringOptions,
+  TAny,
+  TArray,
+  TBoolean,
+  TDate,
+  TEnum,
+  TFile,
+  TInteger,
+  TLiteral,
+  TNull,
+  TNumber,
+  TNumeric,
+  TObject,
+  TOptional,
+  TProperties,
+  TSchema,
+  TString,
+  TUnion,
+  TUnknown,
+  ValidateOptions,
+} from './schema.ts'
 export { compileRoutes } from './compile.ts'
-export type { CompiledHandler, CompiledRoute } from './compile.ts'
-export { Cookie, CookieJar } from './cookie.ts'
-export type { CookieProxy } from './cookie.ts'
-export type { Context } from './context.ts'
+export type { CompiledHandler, CompiledHooks, CompiledRoute } from './compile.ts'
+export { Cookie, CookieJar, signCookie, verifyCookie } from './cookie.ts'
+export type { CookieAttributes, CookieProxy } from './cookie.ts'
+export { Router } from './router.ts'
+export type { Context, SetContext } from './context.ts'
 export { GoddoWebSocket } from './ws.ts'
 export type { TopicMap, WSOptions } from './ws.ts'
 export type {
   AddRoute,
   AnyGoddo,
+  AssertNoReservedSegment,
+  BuildRouteEntry,
+  DocumentDetail,
+  ErrorHandler,
+  GoddoConfig,
   Handler,
   HTTPMethod,
   InferContext,
+  LifeCycleEvent,
   LifeCycleStore,
+  ListenOptions,
   LocalHooks,
   MacroDefinitions,
+  MacroFactory,
+  MaybePromise,
+  ParamsFromPath,
+  PathSegments,
+  ReservedSegmentsIn,
+  ResponseSchema,
+  Route,
   RouteEntry,
   RouteRegistry,
   RouteSchema,
+  TreatyReservedSegment,
+  VoidHandler,
 } from './types.ts'
 
 export default Goddo

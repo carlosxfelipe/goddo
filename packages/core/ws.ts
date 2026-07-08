@@ -1,5 +1,5 @@
 import type { TSchema } from './schema.ts'
-import type { DocumentDetail } from './types.ts'
+import type { DocumentDetail, MaybePromise } from './types.ts'
 
 // ─── Topic Registry ───────────────────────────────────────────────────────────
 
@@ -8,8 +8,7 @@ export type TopicMap = Map<string, Set<GoddoWebSocket>>
 
 // ─── WSOptions ────────────────────────────────────────────────────────────────
 
-type MaybePromise<T> = T | Promise<T>
-
+/** Options for configuring a Goddo WebSocket upgrade. */
 export interface WSOptions {
   // ── Validation schemas applied to the upgrade HTTP request ──
   /** Validates URL path parameters at upgrade time. */
@@ -40,6 +39,7 @@ export interface WSOptions {
 
 // ─── GoddoWebSocket ───────────────────────────────────────────────────────────
 
+/** Internal symbol used to identify WebSocket cleanup functions. */
 export const WS_CLEANUP = Symbol('Goddo.ws_cleanup')
 
 /**
@@ -64,6 +64,12 @@ export class GoddoWebSocket<Data = unknown> {
   #topicMap: TopicMap
   #subscriptions = new Set<string>()
 
+  /**
+   * Initializes a new Goddo WebSocket.
+   * @param raw The native WebSocket object.
+   * @param data Context data captured during the upgrade.
+   * @param topicMap The global TopicMap for pub/sub.
+   */
   constructor(raw: WebSocket, data: Data, topicMap: TopicMap) {
     this.id = crypto.randomUUID()
     this.raw = raw

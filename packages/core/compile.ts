@@ -24,23 +24,37 @@ const isAsyncFn = (fn: Handler): boolean => {
 
 /** Pre-merged lifecycle hooks for a single compiled route. */
 export interface CompiledHooks {
+  /** Global request hooks. */
   request: Handler[]
+  /** Request parse hooks. */
   parse: Handler[]
+  /** Context transform hooks. */
   transform: Handler[]
+  /** Context derive hooks. */
   derive: Handler[]
+  /** Pre-handler hooks. */
   beforeHandle: Handler[]
+  /** Resolve hooks. */
   resolve: Handler[]
+  /** Post-handler hooks. */
   afterHandle: Handler[]
+  /** Post-response hooks. */
   afterResponse: Handler[]
+  /** Error handlers. */
   error: ((ctx: Context & { error: Error; code: string }) => unknown)[]
 }
 
 /** A fully compiled route — all hooks merged, all flags pre-computed. */
 export interface CompiledRoute {
+  /** The HTTP method for the compiled route. */
   method: HTTPMethod
+  /** The URL path for the compiled route. */
   path: string
+  /** The route handler function. */
   handler: Handler
+  /** The local hooks registered for the route. */
   hooks: LocalHooks
+  /** The pre-compiled execution context flags and hooks. */
   compiled: {
     hooks: CompiledHooks
     hasParse: boolean
@@ -60,6 +74,7 @@ export interface CompiledRoute {
   }
 }
 
+/** The fully compiled global HTTP request handler function. */
 export type CompiledHandler = (
   request: Request,
   info?: Deno.ServeHandlerInfo | null,

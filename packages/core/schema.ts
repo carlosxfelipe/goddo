@@ -4,140 +4,188 @@ import { ValidationError } from './error.ts'
 // Base types
 // ---------------------------------------------------------------------------
 
+/** Base options for all schema types. */
 export interface SchemaOptions {
+  /** Custom error message. */
   error?: string
+  /** Default value if not provided. */
   default?: unknown
+  /** Description for documentation. */
   description?: string
 }
 
+/** Base interface for all TypeBox-like schemas. */
 export interface TSchema extends SchemaOptions {
+  /** The inferred TypeScript type. */
   static: unknown
+  /** The string literal type identifier. */
   type: string
+  /** Indicates if the property is optional. */
   optional?: boolean
 }
 
-type Prettify<T> = { [K in keyof T]: T[K] } & unknown
+/** Internal helper to prettify object types. */
+export type Prettify<T> = { [K in keyof T]: T[K] } & unknown
 
+/** Extracts the static TypeScript type from a TSchema. */
 export type Static<T extends TSchema> = T['static']
 
+/** Options specific to string validation. */
 export interface StringOptions extends SchemaOptions {
+  /** Minimum string length. */
   minLength?: number
+  /** Maximum string length. */
   maxLength?: number
+  /** Regex pattern to match. */
   pattern?: string
+  /** Built-in string format validation. */
   format?: 'email' | 'uuid' | 'url' | 'date'
 }
 
+/** Options specific to number validation. */
 export interface NumberOptions extends SchemaOptions {
+  /** Minimum numeric value. */
   minimum?: number
+  /** Maximum numeric value. */
   maximum?: number
+  /** Value must be a multiple of this number. */
   multipleOf?: number
 }
 
+/** Options specific to array validation. */
 export interface ArrayOptions extends SchemaOptions {
+  /** Minimum number of items. */
   minItems?: number
+  /** Maximum number of items. */
   maxItems?: number
 }
 
+/** Options specific to object validation. */
 export interface ObjectOptions extends SchemaOptions {
+  /** Whether unknown properties are allowed. */
   additionalProperties?: boolean
 }
 
+/** Schema representing a string. */
 export interface TString extends TSchema, StringOptions {
   static: string
   type: 'string'
 }
 
+/** Schema representing a number. */
 export interface TNumber extends TSchema, NumberOptions {
   static: number
   type: 'number'
 }
 
+/** Schema representing an integer. */
 export interface TInteger extends TSchema, NumberOptions {
   static: number
   type: 'integer'
 }
 
-/** Number that accepts a coercible string (useful for params/query and body) */
+/** Schema representing a number that accepts a coercible string (useful for params/query and body). */
 export interface TNumeric extends TSchema, NumberOptions {
   static: number
   type: 'numeric'
 }
 
+/** Schema representing a boolean. */
 export interface TBoolean extends TSchema {
   static: boolean
   type: 'boolean'
 }
 
+/** Schema representing a null value. */
 export interface TNull extends TSchema {
   static: null
   type: 'null'
 }
 
+/** Schema representing any value. */
 export interface TAny extends TSchema {
   static: unknown
   type: 'any'
 }
 
+/** Schema representing an unknown value. */
 export interface TUnknown extends TSchema {
   static: unknown
   type: 'unknown'
 }
 
+/** Schema representing a File object. */
 export interface TFile extends TSchema {
   static: File
   type: 'file'
 }
 
+/** Schema representing a Date object. */
 export interface TDate extends TSchema {
   static: Date
   type: 'date'
 }
 
+/** Schema representing an exact literal value. */
 export interface TLiteral<T extends string | number | boolean = string | number | boolean>
   extends TSchema {
   static: T
   type: 'literal'
+  /** The constant literal value. */
   const: T
 }
 
+/** Schema representing a union of multiple schemas. */
 export interface TUnion<T extends TSchema[] = TSchema[]> extends TSchema {
   static: T[number]['static']
   type: 'union'
+  /** The possible schemas in this union. */
   anyOf: T
 }
 
+/** Schema representing an enum of specific values. */
 export interface TEnum<T extends Record<string, string | number> = Record<string, string | number>>
   extends TSchema {
   static: T[keyof T]
   type: 'union'
+  /** The possible schemas derived from enum values. */
   anyOf: TSchema[]
 }
 
+/** Schema representing an array of items. */
 export interface TArray<T extends TSchema = TSchema> extends TSchema, ArrayOptions {
   static: T['static'][]
   type: 'array'
+  /** The schema for the array items. */
   items: T
 }
 
+/** Record of object properties mapped to their schemas. */
 export type TProperties = Record<string, TSchema>
 
-type OptionalKeys<P extends TProperties> = {
+/** Internal helper to extract optional keys. */
+export type OptionalKeys<P extends TProperties> = {
   [K in keyof P]: P[K] extends { optional: true } ? K : never
 }[keyof P]
 
-type RequiredKeys<P extends TProperties> = Exclude<keyof P, OptionalKeys<P>>
+/** Internal helper to extract required keys. */
+export type RequiredKeys<P extends TProperties> = Exclude<keyof P, OptionalKeys<P>>
 
+/** Infers the static type of an object from its properties. */
 export type StaticProperties<P extends TProperties> = Prettify<
   & { [K in RequiredKeys<P>]: P[K]['static'] }
   & { [K in OptionalKeys<P>]?: P[K]['static'] }
 >
 
+/** Schema representing an object with specific properties. */
 export interface TObject<P extends TProperties = TProperties> extends TSchema, ObjectOptions {
   static: StaticProperties<P>
   type: 'object'
+  /** The schemas for each object property. */
   properties: P
 }
 
+/** Schema modifier marking a property as optional. */
 export type TOptional<T extends TSchema> = T & { optional: true }
 
 // ---------------------------------------------------------------------------
@@ -199,6 +247,7 @@ const ObjectSchema = <P extends TProperties>(
 const Optional = <T extends TSchema>(schema: T): TOptional<T> =>
   ({ ...schema, optional: true }) as TOptional<T>
 
+/** Schema builder object, similar to TypeBox's `Type`. */
 export const t = {
   String,
   Number,
@@ -223,6 +272,11 @@ export const t = {
 // JSON Schema conversion (OpenAPI)
 // ---------------------------------------------------------------------------
 
+/**
+ * Converts a TSchema instance into a standard JSON Schema object.
+ * @param schema The TSchema to convert.
+ * @returns A JSON Schema compatible record.
+ */
 export const toJSONSchema = (schema: TSchema): Record<string, unknown> => {
   const base: Record<string, unknown> = {}
   if (schema.default !== undefined) base.default = schema.default
@@ -312,13 +366,21 @@ export const toJSONSchema = (schema: TSchema): Record<string, unknown> => {
 // Runtime validation
 // ---------------------------------------------------------------------------
 
+/** Options for runtime validation. */
 export interface ValidateOptions {
-  /** Coerces strings to number/boolean (used for query/params/headers) */
+  /** Coerces strings to number/boolean (used for query/params/headers). */
   coerce?: boolean
-  /** Path prefix used in error messages (e.g. 'body') */
+  /** Path prefix used in error messages (e.g., 'body'). */
   path?: string
 }
 
+/**
+ * Validates a value against a given schema. Throws ValidationError on failure.
+ * @param schema The TSchema to validate against.
+ * @param value The value to validate.
+ * @param options Optional validation settings.
+ * @returns The validated (and possibly coerced) value.
+ */
 export const validate = (
   schema: TSchema,
   value: unknown,
