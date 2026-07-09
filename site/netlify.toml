@@ -1,0 +1,6 @@
+[build]
+  publish = "dist"
+
+# No build command: Netlify doesn't ship a Deno runtime.
+# Run `deno task build` locally (or in a custom CI step) before deploying,
+# then push the resulting `dist/` folder — e.g. `netlify deploy --dir=dist --prod`.

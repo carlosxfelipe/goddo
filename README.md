@@ -703,6 +703,8 @@ formatter. To use Deno's formatter automatically on save, add the following to y
 ## Structure
 
 - **`src/`** — Demo application serving as an example of how to use Goddo.
+- **`site/`** — Documentation & examples website (dogfoods Goddo itself), CDN-only, no build step.
+  See [`site/README.md`](./site/README.md).
 - **`packages/`** — Monorepo containing the framework and all plugins.
   - **`packages/core/`** — Framework core containing routing, context, validation, and all built-in
     features.

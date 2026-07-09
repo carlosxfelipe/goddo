@@ -1,0 +1,38 @@
+{
+  "imports": {
+    "@goddo/core": "../packages/core/index.ts",
+    "@goddo/core/types": "../packages/core/types.ts",
+    "@goddo/core/context": "../packages/core/context.ts",
+    "@goddo/html": "../packages/html/index.ts",
+    "@goddo/html/jsx-runtime": "../packages/html/jsx-runtime.ts",
+    "@goddo/openapi": "../packages/openapi/index.ts",
+    "@goddo/llms-txt": "../packages/llms-txt/index.ts",
+    "@goddo/static": "../packages/static/index.ts",
+    "@goddo/jwt": "../packages/jwt/index.ts",
+    "@goddo/cors": "../packages/cors/index.ts",
+    "@goddo/rate-limit": "../packages/rate-limit/index.ts",
+    "@goddo/shield": "../packages/shield/index.ts",
+    "@goddo/csrf": "../packages/csrf/index.ts",
+    "@goddo/cron": "../packages/cron/index.ts",
+    "@goddo/bearer": "../packages/bearer/index.ts",
+    "@goddo/server-timing": "../packages/server-timing/index.ts",
+    "@goddo/treaty": "../packages/treaty/index.ts"
+  },
+  "tasks": {
+    "dev": "deno run --watch --allow-net --allow-env --allow-read main.ts",
+    "start": "deno run --allow-net --allow-env --allow-read main.ts",
+    "check": "deno check main.ts",
+    "build": "deno run --allow-write --allow-read build.ts"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "@goddo/html"
+  },
+  "fmt": {
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": true,
+    "semiColons": false
+  }
+}
