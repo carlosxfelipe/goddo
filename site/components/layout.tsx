@@ -1,4 +1,5 @@
 import { HtmlString } from '@goddo/html'
+import { Logo } from './logo.tsx'
 
 export type NavItem = { href: string; label: string; icon: string }
 
@@ -36,6 +37,33 @@ export function Layout({ title, description, active, children }: LayoutProps) {
         <script
           defer
           src='https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js'
+        >
+        </script>
+        <script defer src='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js'>
+        </script>
+        <script
+          defer
+          src='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js'
+        >
+        </script>
+        <script
+          defer
+          src='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js'
+        >
+        </script>
+        <script
+          defer
+          src='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js'
+        >
+        </script>
+        <script
+          defer
+          src='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js'
+        >
+        </script>
+        <script
+          defer
+          src='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js'
         >
         </script>
         <style>
@@ -156,6 +184,24 @@ export function Layout({ title, description, active, children }: LayoutProps) {
 
           pre > code { font-size: 0.85rem; }
 
+          /* Pico-native Prism Syntax Highlighting */
+          .token.comment, .token.prolog, .token.doctype, .token.cdata { color: var(--pico-muted-color); font-style: italic; }
+          .token.punctuation { color: var(--pico-color); opacity: 0.7; }
+          .token.namespace { opacity: .7; }
+          .token.property, .token.tag, .token.boolean, .token.number, .token.constant, .token.symbol, .token.deleted { color: #d946ef; }
+          .token.selector, .token.attr-name, .token.string, .token.char, .token.builtin, .token.inserted { color: #10b981; }
+          .token.operator, .token.entity, .token.url, .language-css .token.string, .style .token.string { color: var(--pico-color); }
+          .token.atrule, .token.attr-value, .token.keyword { color: var(--pico-primary); }
+          .token.function, .token.class-name { color: #3b82f6; }
+          .token.regex, .token.important, .token.variable { color: #f59e0b; }
+
+          @media (prefers-color-scheme: dark) {
+            .token.property, .token.tag, .token.boolean, .token.number, .token.constant, .token.symbol, .token.deleted { color: #e879f9; }
+            .token.selector, .token.attr-name, .token.string, .token.char, .token.builtin, .token.inserted { color: #34d399; }
+            .token.function, .token.class-name { color: #60a5fa; }
+            .token.regex, .token.important, .token.variable { color: #fbbf24; }
+          }
+
           .copy-btn {
             position: absolute;
             top: 0.5rem;
@@ -224,7 +270,7 @@ export function Layout({ title, description, active, children }: LayoutProps) {
             <ul>
               <li>
                 <a href='/' class='brand'>
-                  <i class='ph ph-shield-check' style='color: var(--pico-primary);'></i>
+                  <Logo style='font-size: 1.4rem;' />
                   Goddo
                 </a>
               </li>

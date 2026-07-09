@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="90 115 320 320" width="100%" height="100%">
+  <defs>
+    <!-- Platinum / Silver (Armor Shell) -->
+    <!-- Light source from Top-Left -->
+    <linearGradient id="plat-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
+    </linearGradient>
+    <linearGradient id="plat-mid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F1F5F9"/>
+      <stop offset="100%" stop-color="#94A3B8"/>
+    </linearGradient>
+    <linearGradient id="plat-dark" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <linearGradient id="plat-deep" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#64748B"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+
+    <!-- Divine Gold (Angelic Crests & Visor) -->
+    <linearGradient id="gold-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <linearGradient id="gold-mid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+    <linearGradient id="gold-dark" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#92400E"/>
+    </linearGradient>
+
+    <!-- Sacred Crystal (Glowing Blue Cosmo) -->
+    <linearGradient id="crystal-hl" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E0F2FE"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+    <linearGradient id="crystal-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7DD3FC"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+    <linearGradient id="crystal-mid" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0369A1"/>
+    </linearGradient>
+    <linearGradient id="crystal-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#082F49"/>
+    </linearGradient>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <filter id="drop-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- The Goddo Crest: Shield + Angelic Helmet + Sacred Crystal -->
+  <g transform="translate(250, 250)" filter="url(#drop-shadow)">
+    
+    <!-- ================= LEFT SIDE (Light Side) ================= -->
+    <!-- W1: Outer Angelic Wing/Crest (Gold) -->
+    <polygon points="0,-40 -140,-110 -110,-20" fill="url(#gold-light)"/>
+    <!-- W2: Outer Upper Armor (Platinum) -->
+    <polygon points="0,-40 -110,-20 -60,30" fill="url(#plat-light)"/>
+    
+    <!-- S1: Inner Upper Armor Bevel (Platinum Mid) -->
+    <polygon points="0,-40 -60,30 0,0" fill="url(#plat-mid)"/>
+    <!-- S2: Upper Crystal Bevel (Platinum Dark) -->
+    <polygon points="-60,30 -40,40 0,0" fill="url(#plat-dark)"/>
+    
+    <!-- S3: Main Lower Shield (Platinum Light) -->
+    <polygon points="-60,30 0,160 -40,40" fill="url(#plat-light)"/>
+    <!-- S4: Lower Crystal Bevel (Platinum Mid) -->
+    <polygon points="-40,40 0,160 0,110" fill="url(#plat-mid)"/>
+
+
+    <!-- ================= RIGHT SIDE (Shadow Side) ================= -->
+    <!-- W1_R: Outer Angelic Wing/Crest (Gold) -->
+    <polygon points="0,-40 140,-110 110,-20" fill="url(#gold-mid)"/>
+    <!-- W2_R: Outer Upper Armor (Platinum) -->
+    <polygon points="0,-40 110,-20 60,30" fill="url(#plat-mid)"/>
+    
+    <!-- S1_R: Inner Upper Armor Bevel (Platinum Dark) -->
+    <polygon points="0,-40 60,30 0,0" fill="url(#plat-dark)"/>
+    <!-- S2_R: Upper Crystal Bevel (Platinum Deep) -->
+    <polygon points="60,30 40,40 0,0" fill="url(#plat-deep)"/>
+    
+    <!-- S3_R: Main Lower Shield (Platinum Mid) -->
+    <polygon points="60,30 0,160 40,40" fill="url(#plat-mid)"/>
+    <!-- S4_R: Lower Crystal Bevel (Platinum Dark) -->
+    <polygon points="40,40 0,160 0,110" fill="url(#plat-dark)"/>
+
+
+    <!-- ================= SACRED CRYSTAL (Core) ================= -->
+    <g filter="url(#glow)">
+      <!-- C1: Top Left Crystal Facet -->
+      <polygon points="0,0 -40,40 0,50" fill="url(#crystal-hl)"/>
+      <!-- C2: Bottom Left Crystal Facet -->
+      <polygon points="-40,40 0,110 0,50" fill="url(#crystal-light)"/>
+      
+      <!-- C1_R: Top Right Crystal Facet -->
+      <polygon points="0,0 40,40 0,50" fill="url(#crystal-mid)"/>
+      <!-- C2_R: Bottom Right Crystal Facet -->
+      <polygon points="40,40 0,110 0,50" fill="url(#crystal-dark)"/>
+    </g>
+    
+  </g>
+</svg>

@@ -8,6 +8,7 @@ export function Code({ lang = 'ts', children }: { lang?: string; children: strin
 
   return (
     <pre
+      class={`language-${lang}`}
       x-data={`{ copied: false, copy() { navigator.clipboard.writeText(${
         JSON.stringify(source)
       }); this.copied = true; setTimeout(() => this.copied = false, 1500) } }`}
