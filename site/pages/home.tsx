@@ -46,7 +46,11 @@ export function renderHome() {
             <i class='ph ph-sparkle'></i> Goddo Kurosu – God Cloths
           </span>
           <h1 style='margin-top: 1rem; font-size: 2.5rem;'>
-            An <span style='color: var(--pico-primary);'>ergonomic</span> web framework for Deno
+            An{' '}
+            <span style='background: linear-gradient(90deg, var(--pico-primary), var(--pico-primary-hover)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>
+              ergonomic
+            </span>{' '}
+            web framework for Deno
           </h1>
           <p style='max-width: 640px; margin: 1rem auto; color: var(--pico-muted-color);'>
             Recreates the syntax and Developer Experience of{' '}

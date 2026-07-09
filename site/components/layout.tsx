@@ -241,7 +241,7 @@ export function Layout({ title, description, active, children }: LayoutProps) {
 
           .docs-layout {
             display: grid;
-            grid-template-columns: 220px 1fr;
+            grid-template-columns: 220px minmax(0, 1fr);
             gap: 2rem;
             align-items: start;
           }
@@ -261,7 +261,7 @@ export function Layout({ title, description, active, children }: LayoutProps) {
           .docs-sidebar a { display: inline-flex; align-items: center; gap: 0.35rem; text-decoration: none; }
 
           @media (max-width: 900px) {
-            .docs-layout { grid-template-columns: 1fr; }
+            .docs-layout { grid-template-columns: minmax(0, 1fr); }
             .docs-sidebar { position: static; }
           }
           `}
