@@ -177,8 +177,11 @@ export function Layout({ title, description, active, children }: LayoutProps) {
             text-align: center;
           }
 
-          pre {
+          .code-wrapper {
             position: relative;
+          }
+
+          pre {
             border-radius: 6px;
           }
 

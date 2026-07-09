@@ -87,9 +87,9 @@ deno task dev
 
 ## Documentation
 
-The full API reference, routing syntax, validation schemas, and plugins have been moved to a separate file.
+The full API reference, routing syntax, validation schemas, and plugins are available on our official website.
 
-**[Read the Full Documentation here](https://goddojs.netlify.app/)**
+[Read the Full Documentation here](https://goddojs.netlify.app/)
 
 ## Performance (AOT Compilation)
 

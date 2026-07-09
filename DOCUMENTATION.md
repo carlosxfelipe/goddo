@@ -544,4 +544,3 @@ ws.onmessage = (e) => console.log(e.data)
 `onRequest → onParse → onTransform → derive → validation → resolve → onBeforeHandle → handler →
 onAfterHandle → response validation → mapResponse → onAfterResponse`
 (and `onError` for exceptions), mirroring Elysia's lifecycle.
-
