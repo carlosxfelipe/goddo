@@ -1,7 +1,18 @@
+/**
+ * @module
+ * LLM-friendly API documentation plugin for Goddo.
+ *
+ * Generates a `/llms.txt` Markdown endpoint from registered routes — an
+ * AI-readable summary of your API that large language models can ingest as
+ * context.
+ */
 import type { Route } from '@goddo/core/types'
 import type { Goddo } from '@goddo/core'
 import type { TArray, TObject, TSchema } from '@goddo/core/schema'
 
+/**
+ * Options for the llms.txt documentation plugin.
+ */
 export interface LlmsTxtOptions {
   /** Path to serve the markdown documentation. Default: '/llms.txt' */
   path?: string
@@ -110,23 +121,24 @@ const buildMarkdown = (
  * new Goddo().use(llmstxt()).listen(3000)
  * \`\`\`
  */
-export const llmstxt = (options: LlmsTxtOptions = {}) => (app: Goddo): Goddo => {
-  const path = options.path ?? '/llms.txt'
-  const title = options.title ?? 'API Documentation'
-  const description = options.description ?? 'LLM-friendly API Documentation'
-  const exclude = [...(options.exclude ?? []), path]
+export const llmstxt =
+  (options: LlmsTxtOptions = {}): (app: Goddo) => Goddo => (app: Goddo): Goddo => {
+    const path = options.path ?? '/llms.txt'
+    const title = options.title ?? 'API Documentation'
+    const description = options.description ?? 'LLM-friendly API Documentation'
+    const exclude = [...(options.exclude ?? []), path]
 
-  let cachedDocs: string | null = null
+    let cachedDocs: string | null = null
 
-  return app.get(path, ({ set }) => {
-    set.headers['content-type'] = 'text/plain; charset=utf-8'
-    if (!cachedDocs) {
-      cachedDocs = buildMarkdown(app.routes, { ...options, path, title, description, exclude })
-    }
-    return cachedDocs
-  }, {
-    detail: { summary: 'LLMs txt Documentation', tags: ['Documentation'] },
-  })
-}
+    return app.get(path, ({ set }) => {
+      set.headers['content-type'] = 'text/plain; charset=utf-8'
+      if (!cachedDocs) {
+        cachedDocs = buildMarkdown(app.routes, { ...options, path, title, description, exclude })
+      }
+      return cachedDocs
+    }, {
+      detail: { summary: 'LLMs txt Documentation', tags: ['Documentation'] },
+    })
+  }
 
 export default llmstxt

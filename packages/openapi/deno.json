@@ -1,5 +1,6 @@
 {
   "name": "@goddo/openapi",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "description": "OpenAPI documentation plugin for Goddo with Scalar and Swagger UI support. Auto-generates an OpenAPI 3.0.3 spec from registered routes.",
   "exports": "./index.ts"
 }

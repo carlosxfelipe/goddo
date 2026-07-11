@@ -1,5 +1,6 @@
 {
   "name": "@goddo/server-timing",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "description": "Server-Timing header plugin for Goddo. Measures lifecycle phase durations and reports them in the Server-Timing response header.",
   "exports": "./index.ts"
 }

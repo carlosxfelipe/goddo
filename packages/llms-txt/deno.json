@@ -1,5 +1,6 @@
 {
   "name": "@goddo/llms-txt",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "description": "LLM-friendly API documentation plugin for Goddo. Generates a /llms.txt Markdown endpoint from registered routes for AI context.",
   "exports": "./index.ts"
 }

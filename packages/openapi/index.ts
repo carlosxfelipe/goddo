@@ -1,8 +1,19 @@
+/**
+ * @module
+ * OpenAPI documentation plugin for Goddo with Scalar and Swagger UI support
+ * (equivalent to `@elysiajs/swagger`).
+ *
+ * Automatically generates an OpenAPI 3.0.3 spec from registered routes and
+ * serves an interactive documentation UI at a configurable path.
+ */
 import { toJSONSchema } from '@goddo/core/schema'
 import type { TObject, TSchema } from '@goddo/core/schema'
 import type { Route } from '@goddo/core/types'
 import type { Goddo } from '@goddo/core'
 
+/**
+ * Options for the OpenAPI documentation plugin.
+ */
 export interface OpenAPIOptions {
   /** Path where the documentation is served. Default: '/docs' */
   path?: string
@@ -213,49 +224,50 @@ const scalarHTML = (specUrl: string, title: string, version: string, config: unk
  * // Spec: GET /docs/json
  * ```
  */
-export const openapi = (options: OpenAPIOptions = {}) => (app: Goddo): Goddo => {
-  const path = options.path ?? '/docs'
-  const specPath = `${path}/json`
-  const info = {
-    title: 'Goddo Documentation',
-    version: '0.0.0',
-    description: 'Development documentation',
-    ...options.documentation?.info,
-  }
-  const exclude = [...(options.exclude ?? []), path, specPath]
-
-  const documentation = { ...options.documentation }
-  if (options.bearerAuth) {
-    documentation.components = {
-      ...(documentation.components as object ?? {}),
-      securitySchemes: {
-        ...(((documentation.components as Record<string, unknown>)?.securitySchemes as object) ??
-          {}),
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-        },
-      },
+export const openapi =
+  (options: OpenAPIOptions = {}): (app: Goddo) => Goddo => (app: Goddo): Goddo => {
+    const path = options.path ?? '/docs'
+    const specPath = `${path}/json`
+    const info = {
+      title: 'Goddo Documentation',
+      version: '0.0.0',
+      description: 'Development documentation',
+      ...options.documentation?.info,
     }
-  }
+    const exclude = [...(options.exclude ?? []), path, specPath]
 
-  return app
-    .get(path, ({ set }) => {
-      set.headers['content-type'] = 'text/html; charset=utf-8'
-      if (options.provider === 'swagger-ui') {
-        const uiVersion = options.version ?? '5.17.14'
-        return swaggerHTML(specPath, info.title, uiVersion)
+    const documentation = { ...options.documentation }
+    if (options.bearerAuth) {
+      documentation.components = {
+        ...(documentation.components as object ?? {}),
+        securitySchemes: {
+          ...(((documentation.components as Record<string, unknown>)?.securitySchemes as object) ??
+            {}),
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+          },
+        },
       }
-      const uiVersion = options.version ?? 'latest'
-      return scalarHTML(specPath, info.title, uiVersion, options.scalarConfig)
-    })
-    .get(specPath, () => ({
-      openapi: '3.0.3',
-      ...documentation,
-      info,
-      paths: buildPaths(app.routes, exclude),
-    }))
-}
+    }
+
+    return app
+      .get(path, ({ set }) => {
+        set.headers['content-type'] = 'text/html; charset=utf-8'
+        if (options.provider === 'swagger-ui') {
+          const uiVersion = options.version ?? '5.17.14'
+          return swaggerHTML(specPath, info.title, uiVersion)
+        }
+        const uiVersion = options.version ?? 'latest'
+        return scalarHTML(specPath, info.title, uiVersion, options.scalarConfig)
+      })
+      .get(specPath, () => ({
+        openapi: '3.0.3',
+        ...documentation,
+        info,
+        paths: buildPaths(app.routes, exclude),
+      }))
+  }
 
 export default openapi

@@ -1,14 +1,15 @@
 /**
- * @goddo/server-timing — Server-Timing header plugin (equivalent to @elysiajs/server-timing).
+ * @module
+ * Server-Timing header plugin for Goddo (equivalent to @elysiajs/server-timing).
  *
  * Measures the duration of request lifecycle phases and reports it in the
- * `Server-Timing` response header, visible in the browser DevTools.
- *
- * Note: Goddo approximates Elysia's `.trace()` hook using standard lifecycle
- * boundaries.
+ * `Server-Timing` response header, visible in the browser DevTools Network tab.
  */
 import type { Context, Goddo } from '@goddo/core'
 
+/**
+ * Options for the Server-Timing plugin.
+ */
 export interface ServerTimingOptions {
   /**
    * Determine whether or not Server Timing should be enabled
@@ -24,7 +25,12 @@ export interface ServerTimingOptions {
    * Conditionally emit the header per request. Useful to restrict timing
    * information to admins or non-production environments.
    */
-  allow?: boolean | Promise<boolean> | ((context: Context) => boolean | Promise<boolean>)
+  allow?:
+    | boolean
+    | Promise<boolean>
+    | ((
+      context: { request: Request; headers: Record<string, string> },
+    ) => boolean | Promise<boolean>)
   /**
    * Allow Server Timing to log specified life-cycle events.
    */
@@ -71,7 +77,7 @@ export const serverTiming = ({
     error: traceError = true,
     total: traceTotal = true,
   } = {},
-}: ServerTimingOptions = {}) =>
+}: ServerTimingOptions = {}): (app: Goddo) => Goddo =>
 (app: Goddo): Goddo => {
   if (enabled === false) return app
 
