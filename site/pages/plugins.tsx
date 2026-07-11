@@ -295,8 +295,15 @@ export function renderPlugins() {
         <p style='color: var(--pico-muted-color);'>
           Install only the plugins you need to keep your server lightweight. All are published on
           {' '}
-          <a href='https://jsr.io/@goddo' target='_blank' rel='noopener'>JSR</a> under the{' '}
-          <code>@goddo</code> scope.
+          <a
+            href='https://jsr.io/@goddo'
+            target='_blank'
+            rel='noopener'
+            style='text-decoration: none;'
+          >
+            JSR
+          </a>{' '}
+          under the <code>@goddo</code> scope.
         </p>
         <Code lang='sh'>{`deno add jsr:@goddo/core jsr:@goddo/html jsr:@goddo/cors`}</Code>
 
