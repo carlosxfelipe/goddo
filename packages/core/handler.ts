@@ -6,6 +6,15 @@
 import type { SetContext } from './context.ts'
 import type { CookieJar } from './cookie.ts'
 
+/**
+ * Maps any unknown response value into a standard Web API Response object.
+ * Applies cookies, headers, and status codes set in the request context.
+ *
+ * @param response The raw response payload returned by a handler.
+ * @param set The set context containing mutable headers, status, and redirect info.
+ * @param jar Optional cookie jar instance to serialize cookies.
+ * @returns A standard Web API Response.
+ */
 export const mapResponse = (response: unknown, set: SetContext, jar?: CookieJar): Response => {
   if (set.redirect) {
     set.headers['location'] = set.redirect

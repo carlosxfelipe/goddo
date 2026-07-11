@@ -1,6 +1,5 @@
 /**
  * @module
- *
  * @goddo/bearer — Bearer token extraction plugin (equivalent to @elysiajs/bearer).
  *
  * Extracts the token following RFC 6750: from the `Authorization: Bearer <token>`
@@ -60,29 +59,30 @@ export interface BearerOptions {
  * Injects `bearer` (or custom `name`) into the context containing the extracted
  * token, or `undefined` when no token is present.
  */
-export const bearer = (options: BearerOptions = {}) => (app: Goddo): Goddo => {
-  const name = options.name ?? 'bearer'
-  const fromHeader = options.header ?? true
-  const fromQuery = options.query ?? true
-  const queryName = options.queryName ?? 'access_token'
+export const bearer =
+  (options: BearerOptions = {}): (app: Goddo) => Goddo => (app: Goddo): Goddo => {
+    const name = options.name ?? 'bearer'
+    const fromHeader = options.header ?? true
+    const fromQuery = options.query ?? true
+    const queryName = options.queryName ?? 'access_token'
 
-  return app.derive(({ headers, query }) => {
-    let token: string | undefined
+    return app.derive(({ headers, query }) => {
+      let token: string | undefined
 
-    if (fromHeader) {
-      const authorization = headers.authorization
-      if (authorization?.startsWith('Bearer ')) {
-        token = authorization.slice(7).trim() || undefined
+      if (fromHeader) {
+        const authorization = headers.authorization
+        if (authorization?.startsWith('Bearer ')) {
+          token = authorization.slice(7).trim() || undefined
+        }
       }
-    }
 
-    if (token === undefined && fromQuery) {
-      token = query[queryName] || undefined
-    }
+      if (token === undefined && fromQuery) {
+        token = query[queryName] || undefined
+      }
 
-    return { [name]: token }
-  })
-}
+      return { [name]: token }
+    })
+  }
 
 /**
  * Bearer plugin default export.
