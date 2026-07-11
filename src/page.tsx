@@ -53,7 +53,7 @@ export function renderPage(todos: Todo[]) {
                         <input
                           type='checkbox'
                           checked={todo.completed}
-                          x-on:change={`fetch('/todos/${todo.id}', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: !${todo.completed} }) }).then(() => location.reload())`}
+                          x-on:change={`fetch('/todos/${todo.id}', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: !${todo.completed} }) }).then(() => location.reload())`}
                         />
                         {todo.completed ? <s>{todo.title}</s> : todo.title}
                       </label>
@@ -63,7 +63,7 @@ export function renderPage(todos: Todo[]) {
                         <button
                           type='button'
                           x-data={`{ currentTitle: '${todo.title.replace(/'/g, "\\'")}' }`}
-                          x-on:click={`let newTitle = prompt('Edit todo:', currentTitle); if (newTitle !== null && newTitle.trim() !== '') { fetch('/todos/${todo.id}', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: newTitle.trim() }) }).then(() => location.reload()) }`}
+                          x-on:click={`let newTitle = prompt('Edit todo:', currentTitle); if (newTitle !== null && newTitle.trim() !== '') { fetch('/todos/${todo.id}', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: newTitle.trim() }) }).then(() => location.reload()) }`}
                           style='margin-bottom: 0; min-width: 90px; display: flex; align-items: center; justify-content: center; gap: 0.25rem; background-color: var(--pico-secondary-background); border-color: var(--pico-secondary-border);'
                         >
                           <i class='ph ph-pencil-simple'></i> Edit

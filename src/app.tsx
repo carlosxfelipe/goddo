@@ -62,7 +62,7 @@ export const app = new Goddo()
         body: t.Object({ title: t.String() }),
         detail: { summary: 'Create a new todo', tags: ['Todos'] },
       })
-      .put('/:id', ({ params: { id }, body, set }) => {
+      .patch('/:id', ({ params: { id }, body, set }) => {
         const todo = todos.get(id)
         if (!todo) {
           set.status = 404
@@ -77,7 +77,7 @@ export const app = new Goddo()
           title: t.Optional(t.String()),
           completed: t.Optional(t.Boolean()),
         }),
-        detail: { summary: 'Update a todo', tags: ['Todos'] },
+        detail: { summary: 'Partially update a todo', tags: ['Todos'] },
       })
       .delete('/:id', ({ params: { id }, set }) => {
         if (!todos.has(id)) {
