@@ -74,28 +74,6 @@ export function renderDocs() {
   .onError(({ code }) => code === 'NOT_FOUND' ? 'Not found' : 'Error')
   .listen(3000)`}
               </Code>
-
-              <h3>Divergence from Elysia: error responses</h3>
-              <p>
-                Elysia handles error responses by mutating the <code>set</code>{' '}
-                context object. Goddo intentionally diverges here in favor of{' '}
-                <a
-                  href='https://developer.mozilla.org/en-US/docs/Web/API/Response'
-                  target='_blank'
-                  rel='noopener'
-                >
-                  Web Standard
-                </a>{' '}
-                primitives: the status and body travel together as a single, immutable return value.
-              </p>
-              <Code lang='ts'>
-                {`// Goddo
-.get('/:id', ({ params: { id } }) => {
-  const todo = find(id)
-  if (!todo) return new Response('Not found', { status: 404 })
-  return todo
-})`}
-              </Code>
             </section>
 
             <section id='validation'>
