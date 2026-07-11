@@ -20,7 +20,7 @@ export function renderPage(todos: Todo[]) {
         </style>
       </head>
       <body>
-        <main>
+        <main x-data>
           <article style='margin-top: 3rem;'>
             <h1 style='display: flex; align-items: center; gap: 0.5rem;'>
               <i class='ph ph-list-checks' style='color: var(--pico-primary);'></i> My Todos
