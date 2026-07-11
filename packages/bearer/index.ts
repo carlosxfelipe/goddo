@@ -1,10 +1,13 @@
 /**
+ * @module
+ *
  * @goddo/bearer — Bearer token extraction plugin (equivalent to @elysiajs/bearer).
  *
  * Extracts the token following RFC 6750: from the `Authorization: Bearer <token>`
  * header first, then from the `access_token` query parameter as a fallback.
  * The token is injected into the context as `bearer` (or a custom name).
  *
+ * @example
  * ```ts
  * import { Goddo } from '@goddo/core'
  * import { bearer } from '@goddo/bearer'
@@ -25,6 +28,9 @@
  */
 import type { Goddo } from '@goddo/core'
 
+/**
+ * Options for the bearer plugin.
+ */
 export interface BearerOptions {
   /**
    * Name of the key added to the context object.
@@ -78,4 +84,7 @@ export const bearer = (options: BearerOptions = {}) => (app: Goddo): Goddo => {
   })
 }
 
+/**
+ * Bearer plugin default export.
+ */
 export default bearer

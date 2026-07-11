@@ -23,7 +23,7 @@ export async function renderExamples() {
         <h1 style='display: flex; align-items: center; gap: 0.5rem;'>
           <i class='ph ph-code' style='color: var(--pico-primary);'></i> Examples
         </h1>
-        <p style='color: var(--pico-muted-color); max-width: 720px;'>
+        <p style='color: var(--pico-muted-color);'>
           The official Goddo demo (in <code>src/</code>{' '}
           in the repository) is a full Todo API: CRUD with validation via{' '}
           <code>t</code>, automatic documentation with <code>@goddo/openapi</code>, an{' '}
@@ -31,6 +31,19 @@ export async function renderExamples() {
           endpoint for AI agents, and an SSR page in TSX with Pico CSS, Phosphor Icons, and
           Alpine.js — exactly the same stack as this site.
         </p>
+        <div style='background-color: var(--pico-form-element-background); padding: 1rem; border-left: 4px solid var(--pico-primary); margin-bottom: 2rem;'>
+          <strong>Standalone Demo:</strong>{' '}
+          If you want to see an example using the published JSR packages, check out the{' '}
+          <a
+            href='https://github.com/carlosxfelipe/goddo-example'
+            target='_blank'
+            rel='noopener'
+            style='text-decoration: none;'
+          >
+            goddo-example
+          </a>{' '}
+          repository.
+        </div>
 
         <article>
           <h2 style='display: flex; align-items: center; gap: 0.5rem;'>

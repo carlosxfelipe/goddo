@@ -68,6 +68,13 @@ new Goddo()
   .listen(3000)
 ```
 
+## Examples
+
+You can find a complete standalone demo using the published JSR packages at:
+[carlosxfelipe/goddo-example](https://github.com/carlosxfelipe/goddo-example)
+
+There is also a local demo within this repository (`src/`), which you can run using:
+
 ```sh
 deno task dev
 ```
@@ -87,7 +94,8 @@ deno task dev
 
 ## Documentation
 
-The full API reference, routing syntax, validation schemas, and plugins are available on our official website.
+The full API reference, routing syntax, validation schemas, and plugins are available on our
+official website.
 
 [Read the Full Documentation here](https://goddojs.netlify.app/)
 

@@ -292,7 +292,7 @@ export function renderPlugins() {
         <h1 style='display: flex; align-items: center; gap: 0.5rem;'>
           <i class='ph ph-puzzle-piece' style='color: var(--pico-primary);'></i> Plugins
         </h1>
-        <p style='color: var(--pico-muted-color); max-width: 720px;'>
+        <p style='color: var(--pico-muted-color);'>
           Install only the plugins you need to keep your server lightweight. All are published on
           {' '}
           <a href='https://jsr.io/@goddo' target='_blank' rel='noopener'>JSR</a> under the{' '}

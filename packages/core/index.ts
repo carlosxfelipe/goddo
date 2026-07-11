@@ -724,7 +724,7 @@ export class Goddo<
         hostname: config.hostname ?? '0.0.0.0',
         onListen: config.onListen ??
           (({ hostname, port }) => {
-            console.log(`🦊 Goddo is running at http://${hostname}:${port}`)
+            console.log(`🦕 Goddo is running at http://${hostname}:${port}`)
           }),
       },
       this.handle,
