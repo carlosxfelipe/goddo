@@ -54,7 +54,14 @@ export function renderHome() {
           </h1>
           <p style='max-width: 640px; margin: 1rem auto; color: var(--pico-muted-color);'>
             Recreates the syntax and Developer Experience of{' '}
-            <a href='https://elysiajs.com' target='_blank' rel='noopener'>ElysiaJS</a>{' '}
+            <a
+              href='https://elysiajs.com'
+              target='_blank'
+              rel='noopener'
+              style='text-decoration: none;'
+            >
+              ElysiaJS
+            </a>{' '}
             with end-to-end type safety, autocompletion, and an intuitive API — zero npm
             dependencies, built entirely with native Deno and Web APIs.
           </p>
