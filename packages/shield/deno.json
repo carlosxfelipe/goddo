@@ -1,5 +1,6 @@
 {
   "name": "@goddo/shield",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "description": "Security headers plugin for Goddo. Automatically injects standard security headers to protect from common web vulnerabilities.",
   "exports": "./index.ts"
 }

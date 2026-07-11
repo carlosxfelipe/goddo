@@ -1,6 +1,7 @@
 {
   "name": "@goddo/html",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "description": "HTML and JSX rendering plugin for Goddo. Render JSX components and HTML strings natively.",
   "exports": {
     ".": "./index.ts",
     "./jsx-runtime": "./jsx-runtime.ts"

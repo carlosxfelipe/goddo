@@ -1,19 +1,9 @@
 /**
+ * @module
  * @goddo/jwt — JWT sign/verify plugin (equivalent to @elysiajs/jwt).
  *
  * Uses the Web Crypto API (SubtleCrypto) — zero external dependencies.
  * Supports HS256, HS384, HS512 algorithms.
- *
- * ```ts
- * import { Goddo } from '@goddo/core'
- * import { jwt } from '@goddo/jwt'
- *
- * new Goddo()
- *   .use(jwt({ secret: 'my-secret' }))
- *   .get('/sign',   ({ jwt }) => jwt.sign({ sub: '1' }))
- *   .get('/verify', ({ jwt, query }) => jwt.verify(query.token))
- *   .listen(3000)
- * ```
  */
 // No imports here
 

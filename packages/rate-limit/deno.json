@@ -1,5 +1,6 @@
 {
   "name": "@goddo/rate-limit",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "description": "Rate limiting plugin for Goddo. Protects your API from abuse by limiting requests per IP within a time window.",
   "exports": "./index.ts"
 }

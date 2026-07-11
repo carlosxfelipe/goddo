@@ -1,18 +1,28 @@
+/**
+ * @module
+ * Rate limiting plugin for Goddo.
+ *
+ * Protects your API from brute-force attacks and abuse by limiting the number
+ * of requests a client can make within a specified time window.
+ */
 import type { Context } from '@goddo/core'
 
 /** Options for the Rate Limit plugin. */
 export interface RateLimitOptions {
+  /** Maximum number of requests per window. @default 100 */
   max?: number
+  /** Time window in milliseconds. @default 60000 */
   windowMs?: number
+  /** Message sent when the limit is exceeded. @default 'Too Many Requests' */
   message?: string
 }
 
 /**
  * Enable rate limiting for the application.
  */
-export function rateLimit(
+export const rateLimit = (
   options: RateLimitOptions = {},
-): <App extends import('@goddo/core/types').AnyGoddo>(app: App) => App {
+): <App extends import('@goddo/core/types').AnyGoddo>(app: App) => App => {
   const max = options.max ?? 100
   const windowMs = options.windowMs ?? 60000
   const message = options.message ?? 'Too Many Requests'

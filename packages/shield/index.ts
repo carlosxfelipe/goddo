@@ -1,24 +1,32 @@
+/**
+ * @module
+ * Security headers plugin for Goddo.
+ *
+ * Automatically injects standard security headers to protect your application
+ * from common web vulnerabilities.
+ */
 import type { Context } from '@goddo/core'
 
 /** Options for the Shield plugin. */
 export interface ShieldOptions {
-  /** @default '1; mode=block' */
+  /** X-XSS-Protection header. @default '1; mode=block' */
   xXSSProtection?: string | false
-  /** @default 'nosniff' */
+  /** X-Content-Type-Options header. @default 'nosniff' */
   xContentTypeOptions?: string | false
-  /** @default 'SAMEORIGIN' */
+  /** X-Frame-Options header. @default 'SAMEORIGIN' */
   xFrameOptions?: string | false
-  /** @default 'max-age=15552000; includeSubDomains' */
+  /** Strict-Transport-Security header. @default 'max-age=15552000; includeSubDomains' */
   strictTransportSecurity?: string | false
+  /** Content-Security-Policy header. */
   contentSecurityPolicy?: string | false
 }
 
 /**
  * Add security headers to the application.
  */
-export function shield(
+export const shield = (
   options: ShieldOptions = {},
-): <App extends import('@goddo/core/types').AnyGoddo>(app: App) => App {
+): <App extends import('@goddo/core/types').AnyGoddo>(app: App) => App => {
   const headers: Record<string, string> = {}
 
   if (options.xXSSProtection !== false) {

@@ -1,10 +1,21 @@
+/**
+ * @module
+ * CSRF (Cross-Site Request Forgery) protection plugin for Goddo.
+ *
+ * Automatically generates CSRF tokens, sets them in an HTTP-only cookie, and
+ * validates incoming state-changing requests.
+ */
 import type { Context } from '@goddo/core'
 
 /** Options for the CSRF plugin. */
 export interface CsrfOptions {
+  /** Name of the CSRF cookie. @default 'csrf' */
   cookieName?: string
+  /** Name of the CSRF header. @default 'x-csrf-token' */
   headerName?: string
+  /** HTTP methods to protect. @default ['POST', 'PUT', 'DELETE', 'PATCH'] */
   methods?: string[]
+  /** Options for the CSRF cookie. */
   cookieOptions?: {
     domain?: string
     path?: string
@@ -16,11 +27,11 @@ export interface CsrfOptions {
 /**
  * Enable CSRF (Cross-Site Request Forgery) protection for the application.
  */
-export function csrf(
+export const csrf = (
   options: CsrfOptions = {},
 ): <App extends import('@goddo/core/types').AnyGoddo>(
   app: App,
-) => import('@goddo/core').Goddo<App['_context'] & { csrfToken: () => string }, App['_routes']> {
+) => import('@goddo/core').Goddo<App['_context'] & { csrfToken: () => string }, App['_routes']> => {
   const cookieName = options.cookieName ?? 'csrf'
   const headerName = options.headerName ?? 'x-csrf-token'
   const methods = options.methods ?? ['POST', 'PUT', 'DELETE', 'PATCH']

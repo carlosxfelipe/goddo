@@ -4,28 +4,10 @@
  * Equivalent to Elysia Eden Treaty: a Proxy-based client that maps
  * `client.path.segment.method(opts)` to typed `fetch` calls, with full
  * end-to-end TypeScript inference from the server's route definitions.
- *
- * @example
- * ```ts
- * import { Goddo, t } from '@goddo/core'
- * import { treaty } from '@goddo/treaty'
- *
- * const app = new Goddo()
- *   .get('/user/:id', ({ params }) => params)
- *   .post('/user', ({ body }) => body, {
- *     body: t.Object({ name: t.String() }),
- *   })
- *
- * type App = typeof app
- *
- * const client = treaty<App>('http://localhost:3000')
- *
- * const { data, error } = await client.user({ id: '1' }).get()
- * const { data }        = await client.user.post({ body: { name: 'Carlos' } })
- * ```
  */
 
 import type { RouteEntry, RouteRegistry } from '@goddo/core'
+export type { RouteEntry, RouteRegistry } from '@goddo/core'
 
 // ---------------------------------------------------------------------------
 // Response type
@@ -41,7 +23,8 @@ export type TreatyResponse<T> = Promise<
 // Type utilities
 // ---------------------------------------------------------------------------
 
-type UnionToIntersection<U> = (U extends unknown ? (x: U) => void : never) extends
+/** Convert a Union type to an Intersection type. */
+export type UnionToIntersection<U> = (U extends unknown ? (x: U) => void : never) extends
   (x: infer I) => void ? I
   : never
 
@@ -50,20 +33,20 @@ type UnionToIntersection<U> = (U extends unknown ? (x: U) => void : never) exten
  * "/user/:id/posts" → ["user", ":id", "posts"]
  * "/"              → []
  */
-type SplitPath<S extends string> = S extends `/${infer Rest}` ? SplitPath<Rest>
+export type SplitPath<S extends string> = S extends `/${infer Rest}` ? SplitPath<Rest>
   : S extends `${infer Head}/${infer Tail}` ? Head extends '' ? SplitPath<Tail>
     : [Head, ...SplitPath<Tail>]
   : S extends '' ? []
   : [S]
 
 /** Extract the param name: ":id" → "id" */
-type ParamName<S extends string> = S extends `:${infer N}` ? N : never
+export type ParamName<S extends string> = S extends `:${infer N}` ? N : never
 
 /** True when a segment is a named param */
-type IsParamSeg<S extends string> = S extends `:${string}` ? true : false
+export type IsParamSeg<S extends string> = S extends `:${string}` ? true : false
 
 /** Per-call options accepted by every method function */
-type CallOptions<E extends RouteEntry> = {
+export type CallOptions<E extends RouteEntry> = {
   body?: E['body']
   query?: E['query'] extends Record<string, unknown> ? Partial<E['query']>
     : Record<string, unknown>
@@ -72,17 +55,19 @@ type CallOptions<E extends RouteEntry> = {
 }
 
 /** A single HTTP method call: accepts options, returns a structured response */
-type MethodFn<E extends RouteEntry> = (options?: CallOptions<E>) => TreatyResponse<E['response']>
+export type MethodFn<E extends RouteEntry> = (
+  options?: CallOptions<E>,
+) => TreatyResponse<E['response']>
 
 /** Map uppercase HTTP method keys → lowercase method functions */
-type MethodsProxy<Methods extends Partial<Record<string, RouteEntry>>> = {
+export type MethodsProxy<Methods extends Partial<Record<string, RouteEntry>>> = {
   [M in keyof Methods & string as Lowercase<M>]: Methods[M] extends RouteEntry
     ? MethodFn<Methods[M]>
     : never
 }
 
 /** Recursively build the proxy shape from path segments */
-type SegmentsToProxy<
+export type SegmentsToProxy<
   Segs extends string[],
   Methods extends Partial<Record<string, RouteEntry>>,
 > = Segs extends [] ? MethodsProxy<Methods>
@@ -93,7 +78,7 @@ type SegmentsToProxy<
   : never
 
 /** Build proxy type from a single path string */
-type PathProxy<
+export type PathProxy<
   Path extends string,
   Methods extends Partial<Record<string, RouteEntry>>,
 > = SegmentsToProxy<SplitPath<Path>, Methods>
@@ -290,9 +275,9 @@ function createProxy(baseUrl: string, segments: string[], globalOpts: TreatyOpti
  * ws.onmessage = (e) => console.log(e.data)
  * ```
  */
-export function treaty<App extends { readonly _routes: RouteRegistry }>(
+export const treaty = <App extends { readonly _routes: RouteRegistry }>(
   baseUrl: string,
   options: TreatyOptions = {},
-): TreatyProxyFrom<App['_routes']> {
+): TreatyProxyFrom<App['_routes']> => {
   return createProxy(baseUrl, [], options) as TreatyProxyFrom<App['_routes']>
 }

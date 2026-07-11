@@ -1,3 +1,10 @@
+/**
+ * @module
+ * CORS (Cross-Origin Resource Sharing) plugin for Goddo (equivalent to @elysiajs/cors).
+ *
+ * Automatically handles CORS headers and `OPTIONS` preflight requests for your API.
+ */
+
 /** Options for the CORS plugin. */
 export interface CorsOptions {
   /**

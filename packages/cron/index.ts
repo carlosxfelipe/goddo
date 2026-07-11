@@ -1,4 +1,5 @@
 /**
+ * @module
  * @goddo/cron — Task scheduling plugin (equivalent to @elysiajs/cron).
  *
  * Zero dependencies: includes a small cron pattern parser and scheduler.
@@ -7,30 +8,10 @@
  *
  * Field syntax: `*`, numbers (`5`), lists (`1,15,30`), ranges (`1-5`) and
  * steps (every N: `0-59/10`).
- *
- * ```ts
- * import { Goddo } from '@goddo/core'
- * import { cron } from '@goddo/cron'
- *
- * new Goddo()
- *   .use(
- *     cron({
- *       name: 'heartbeat',
- *       pattern: '0-59/10 * * * * *', // every 10 seconds
- *       run() {
- *         console.log('Heartbeat')
- *       },
- *     }),
- *   )
- *   .get('/stop', ({ store }) => {
- *     store.cron.heartbeat.stop()
- *     return 'Stopped'
- *   })
- *   .listen(3000)
- * ```
  */
 import type { Goddo } from '@goddo/core'
 
+/** Options for the Cron plugin. */
 export interface CronOptions {
   /** Unique job name, used as the key in `store.cron`. */
   name: string
@@ -50,7 +31,9 @@ export interface CronOptions {
 
 /** Controller injected into `store.cron[name]`. */
 export interface CronJob {
+  /** Name of the job. */
   name: string
+  /** The cron pattern of the job. */
   pattern: string
   /** Whether the job is currently scheduled. */
   isRunning(): boolean
@@ -221,7 +204,7 @@ const createJob = (options: CronOptions): CronJob => {
  * Registers a scheduled job and exposes its controller in `store.cron[name]`
  * with `stop()`, `start()`, `trigger()` and `isRunning()`.
  */
-export const cron = (options: CronOptions) => (app: Goddo): Goddo => {
+export const cron = (options: CronOptions): (app: Goddo) => Goddo => (app: Goddo): Goddo => {
   const job = createJob(options)
 
   const registry = (app.store.cron ?? {}) as Record<string, CronJob>

@@ -1,5 +1,6 @@
 {
   "name": "@goddo/treaty",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "description": "Type-safe HTTP client for Goddo. Provides full end-to-end TypeScript inference from your server's route definitions.",
   "exports": "./index.ts"
 }
