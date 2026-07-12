@@ -32,9 +32,9 @@ Deno.bench('POST /todos/ (Create todo)', async () => {
   await app.handle(req)
 })
 
-Deno.bench('PUT /todos/1 (Update todo)', async () => {
+Deno.bench('PATCH /todos/1 (Update todo)', async () => {
   const req = new Request('http://localhost/todos/1', {
-    method: 'PUT',
+    method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ completed: true }),
   })

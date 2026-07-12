@@ -303,19 +303,20 @@ export const compileRoutes = (
     let cr: CompiledRoute | undefined
 
     try {
-      let stageStart = performance.now()
+      let stageStart = 0
+      if (hasTrace) stageStart = performance.now()
 
       // --- onRequest (global only, pre-compiled) ---
       if (hasGlobalRequest) {
         for (const hook of event.request) {
           const result = await hook(context)
           if (result !== undefined) {
-            await runTrace('request', stageStart)
+            if (hasTrace) await runTrace('request', stageStart)
             return mapResponse(result, set, context.getJar())
           }
         }
       }
-      await runTrace('request', stageStart)
+      if (hasTrace) await runTrace('request', stageStart)
 
       // --- Route lookup ---
       // Fast path: static route O(1)
@@ -335,20 +336,20 @@ export const compileRoutes = (
       const ch = c.hooks
 
       // --- route-level onRequest ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (c.hasLocalRequest) {
         for (const hook of ch.localRequest) {
           const result = await hook(context)
           if (result !== undefined) {
-            await runTrace('localRequest', stageStart)
+            if (hasTrace) await runTrace('localRequest', stageStart)
             return mapResponse(result, set, context.getJar())
           }
         }
       }
-      await runTrace('localRequest', stageStart)
+      if (hasTrace) await runTrace('localRequest', stageStart)
 
       // --- onParse ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (method !== 'GET' && method !== 'HEAD') {
         if (c.hasParse) {
           for (const hook of ch.parse) {
@@ -363,29 +364,29 @@ export const compileRoutes = (
           context.body = await parseBody(request)
         }
       }
-      await runTrace('parse', stageStart)
+      if (hasTrace) await runTrace('parse', stageStart)
 
       // --- onTransform ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (c.hasTransform) {
         for (const hook of ch.transform) {
           await hook(context)
         }
       }
-      await runTrace('transform', stageStart)
+      if (hasTrace) await runTrace('transform', stageStart)
 
       // --- derive ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (c.hasDerive) {
         for (const hook of ch.derive) {
           const derived = await hook(context)
           if (derived && typeof derived === 'object') Object.assign(context, derived)
         }
       }
-      await runTrace('derive', stageStart)
+      if (hasTrace) await runTrace('derive', stageStart)
 
       // --- Validation (pre-computed flags, no conditional on schema existence) ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (c.hasParams) {
         context.params = validate(resolveModel(cr.hooks.params!), context.params, {
           coerce: true,
@@ -423,33 +424,33 @@ export const compileRoutes = (
         }
         validate(resolveModel(cr.hooks.cookie!), cookieObj, { path: 'cookie' })
       }
-      await runTrace('validation', stageStart)
+      if (hasTrace) await runTrace('validation', stageStart)
 
       // --- resolve ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (c.hasResolve) {
         for (const hook of ch.resolve) {
           const resolved = await hook(context)
           if (resolved && typeof resolved === 'object') Object.assign(context, resolved)
         }
       }
-      await runTrace('resolve', stageStart)
+      if (hasTrace) await runTrace('resolve', stageStart)
 
       // --- onBeforeHandle ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (c.hasBeforeHandle) {
         for (const hook of ch.beforeHandle) {
           const result = await hook(context)
           if (result !== undefined) {
-            await runTrace('beforeHandle', stageStart)
+            if (hasTrace) await runTrace('beforeHandle', stageStart)
             return mapResponse(result, set, context.getJar())
           }
         }
       }
-      await runTrace('beforeHandle', stageStart)
+      if (hasTrace) await runTrace('beforeHandle', stageStart)
 
       // --- Handler (sucrose: skip await for sync handlers) ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       let response: unknown
       if (c.handlerIsAsync) {
         response = await cr.handler(context)
@@ -459,20 +460,20 @@ export const compileRoutes = (
           response = await response
         }
       }
-      await runTrace('handler', stageStart)
+      if (hasTrace) await runTrace('handler', stageStart)
 
       // --- onAfterHandle ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (c.hasAfterHandle) {
         for (const hook of ch.afterHandle) {
           const result = await hook(Object.assign(context, { response }))
           if (result !== undefined) response = result
         }
       }
-      await runTrace('afterHandle', stageStart)
+      if (hasTrace) await runTrace('afterHandle', stageStart)
 
       // --- Response validation ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (c.hasResponse) {
         let resSchema: TSchema | undefined
         if (typeof cr.hooks.response === 'string') {
@@ -495,28 +496,28 @@ export const compileRoutes = (
           })
         }
       }
-      await runTrace('responseValidation', stageStart)
+      if (hasTrace) await runTrace('responseValidation', stageStart)
 
       // --- mapResponse ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (c.hasMapResponse) {
         for (const hook of ch.mapResponse) {
           const result = await hook(Object.assign(context, { response }))
           if (result !== undefined) response = result
         }
       }
-      await runTrace('mapResponse', stageStart)
+      if (hasTrace) await runTrace('mapResponse', stageStart)
 
       const mapped = mapResponse(response, set, context.getJar())
 
       // --- onAfterResponse ---
-      stageStart = performance.now()
+      if (hasTrace) stageStart = performance.now()
       if (c.hasAfterResponse) {
         for (const hook of ch.afterResponse) {
           await hook(Object.assign(context, { response: mapped }))
         }
       }
-      await runTrace('afterResponse', stageStart)
+      if (hasTrace) await runTrace('afterResponse', stageStart)
 
       return mapped
     } catch (err) {

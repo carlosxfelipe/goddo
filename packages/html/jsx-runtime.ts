@@ -1,7 +1,20 @@
 export type { JSX } from './types.ts'
 
 /** Represents a raw HTML string that should not be escaped. */
-export class HtmlString extends String {}
+export class HtmlString {
+  /** The raw HTML string value. */
+  value: string
+
+  /** Creates a new HtmlString instance. */
+  constructor(value: unknown) {
+    this.value = value instanceof HtmlString ? value.value : String(value)
+  }
+
+  /** Returns the raw HTML string. */
+  toString(): string {
+    return this.value
+  }
+}
 
 /** JSX Fragment component. */
 export const Fragment = Symbol('Fragment')
@@ -59,11 +72,17 @@ export function jsx(type: unknown, props: Record<string, unknown>): unknown {
   let html = type === Fragment ? '' : `<${type}`
 
   if (type !== Fragment) {
-    for (const key in props) {
+    const keys = Object.keys(props)
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i] as string
       if (key === 'children') continue
-      const val = props[key]
+      const val = props[key as string]
       if (val === true) html += ` ${key}`
-      else if (val !== false && val != null) html += ` ${key}="${escapeHtml(String(val))}"`
+      else if (val !== false && val != null) {
+        html += typeof val === 'string'
+          ? ` ${key}="${escapeHtml(val)}"`
+          : ` ${key}="${escapeHtml(String(val))}"`
+      }
     }
     html += '>'
   }
@@ -74,8 +93,14 @@ export function jsx(type: unknown, props: Record<string, unknown>): unknown {
     if (child == null || typeof child === 'boolean') return ''
     if (child instanceof HtmlString) return child.toString()
     if (Array.isArray(child)) {
-      const parts = child.map(renderChild)
-      if (parts.some((p) => p instanceof Promise)) {
+      let hasPromise = false
+      const parts = new Array(child.length)
+      for (let i = 0; i < child.length; i++) {
+        const p = renderChild(child[i])
+        parts[i] = p
+        if (p instanceof Promise) hasPromise = true
+      }
+      if (hasPromise) {
         return Promise.all(parts).then((res) => res.join(''))
       }
       return parts.join('')
@@ -83,8 +108,8 @@ export function jsx(type: unknown, props: Record<string, unknown>): unknown {
     if (child instanceof Promise) {
       return child.then(renderChild)
     }
-    if (typeof child === 'string' || typeof child === 'number') {
-      return escapeHtml(String(child))
+    if (typeof child === 'string') {
+      return escapeHtml(child)
     }
     return escapeHtml(String(child))
   }

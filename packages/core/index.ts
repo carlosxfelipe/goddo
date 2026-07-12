@@ -765,27 +765,42 @@ export class Goddo<
 
       // --- onParse ---
       if (request.method !== 'GET' && request.method !== 'HEAD') {
+        let done = false
         if (this.event.parse.length || toArray(route.hooks.parse).length) {
-          for (const hook of [...this.event.parse, ...toArray(route.hooks.parse)]) {
+          for (const hook of this.event.parse) {
             const result = await hook(context)
             if (result !== undefined) {
               context.body = result
+              done = true
               break
             }
           }
-          if (context.body === undefined) context.body = await parseBody(request)
+          if (!done) {
+            for (const hook of toArray(route.hooks.parse)) {
+              const result = await hook(context)
+              if (result !== undefined) {
+                context.body = result
+                done = true
+                break
+              }
+            }
+          }
+          if (!done) context.body = await parseBody(request)
         } else {
           context.body = await parseBody(request)
         }
       }
 
       // --- onTransform ---
-      for (const hook of [...this.event.transform, ...toArray(route.hooks.transform)]) {
-        await hook(context)
-      }
+      for (const hook of this.event.transform) await hook(context)
+      for (const hook of toArray(route.hooks.transform)) await hook(context)
 
       // --- derive (extends context before validation) ---
-      for (const hook of [...this.event.derive, ...toArray(route.hooks.derive)]) {
+      for (const hook of this.event.derive) {
+        const derived = await hook(context)
+        if (derived && typeof derived === 'object') Object.assign(context, derived)
+      }
+      for (const hook of toArray(route.hooks.derive)) {
         const derived = await hook(context)
         if (derived && typeof derived === 'object') Object.assign(context, derived)
       }
@@ -826,13 +841,21 @@ export class Goddo<
       }
 
       // --- resolve (extends context after validation) ---
-      for (const hook of [...this.event.resolve, ...toArray(route.hooks.resolve)]) {
+      for (const hook of this.event.resolve) {
+        const resolved = await hook(context)
+        if (resolved && typeof resolved === 'object') Object.assign(context, resolved)
+      }
+      for (const hook of toArray(route.hooks.resolve)) {
         const resolved = await hook(context)
         if (resolved && typeof resolved === 'object') Object.assign(context, resolved)
       }
 
       // --- onBeforeHandle ---
-      for (const hook of [...this.event.beforeHandle, ...toArray(route.hooks.beforeHandle)]) {
+      for (const hook of this.event.beforeHandle) {
+        const result = await hook(context)
+        if (result !== undefined) return mapResponse(result, context.set, context.cookie)
+      }
+      for (const hook of toArray(route.hooks.beforeHandle)) {
         const result = await hook(context)
         if (result !== undefined) return mapResponse(result, context.set, context.cookie)
       }
@@ -841,7 +864,11 @@ export class Goddo<
       let response = await route.handler(context)
 
       // --- onAfterHandle ---
-      for (const hook of [...this.event.afterHandle, ...toArray(route.hooks.afterHandle)]) {
+      for (const hook of this.event.afterHandle) {
+        const result = await hook(Object.assign(context, { response }))
+        if (result !== undefined) response = result
+      }
+      for (const hook of toArray(route.hooks.afterHandle)) {
         const result = await hook(Object.assign(context, { response }))
         if (result !== undefined) response = result
       }
@@ -871,7 +898,11 @@ export class Goddo<
       }
 
       // --- mapResponse ---
-      for (const hook of [...this.event.mapResponse, ...toArray(route.hooks.mapResponse)]) {
+      for (const hook of this.event.mapResponse) {
+        const result = await hook(Object.assign(context, { response }))
+        if (result !== undefined) response = result
+      }
+      for (const hook of toArray(route.hooks.mapResponse)) {
         const result = await hook(Object.assign(context, { response }))
         if (result !== undefined) response = result
       }
@@ -879,7 +910,10 @@ export class Goddo<
       const mapped = mapResponse(response, context.set, context.cookie)
 
       // --- onAfterResponse ---
-      for (const hook of [...this.event.afterResponse, ...toArray(route.hooks.afterResponse)]) {
+      for (const hook of this.event.afterResponse) {
+        await hook(Object.assign(context, { response: mapped }))
+      }
+      for (const hook of toArray(route.hooks.afterResponse)) {
         await hook(Object.assign(context, { response: mapped }))
       }
 
@@ -889,7 +923,14 @@ export class Goddo<
       const code = error instanceof GoddoError ? error.code : 'UNKNOWN'
       const status = error instanceof GoddoError ? error.status : 500
 
-      for (const hook of [...this.event.error, ...toArray(route?.hooks.error)]) {
+      for (const hook of this.event.error) {
+        const result = await hook(Object.assign(context, { error, code }))
+        if (result !== undefined) {
+          if (!context.set.status || context.set.status < 400) context.set.status = status
+          return mapResponse(result, context.set, context.cookie)
+        }
+      }
+      for (const hook of toArray(route?.hooks.error)) {
         const result = await hook(Object.assign(context, { error, code }))
         if (result !== undefined) {
           if (!context.set.status || context.set.status < 400) context.set.status = status
