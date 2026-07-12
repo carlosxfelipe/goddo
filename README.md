@@ -79,6 +79,54 @@ There is also a local demo within this repository (`src/`), which you can run us
 deno task dev
 ```
 
+## ElysiaJS Compatibility
+
+Goddo's core API is designed to mirror [ElysiaJS](https://elysiajs.com) as closely as possible,
+making migration straightforward for Deno projects. The table below shows the current parity:
+
+| Feature                              | ElysiaJS                            | Goddo                        | Notes                                   |
+| ------------------------------------ | ----------------------------------- | ---------------------------- | --------------------------------------- |
+| Route handlers (`get`, `post`, etc.) | `app.get('/', () => ...)`           | ✅ `app.get('/', () => ...)` | Identical                               |
+| Path params                          | `({ params }) => params.id`         | ✅ Same                      | Identical                               |
+| Schema validation (`t`)              | `t.Object`, `t.String`              | ✅ Same builders             | Identical                               |
+| `t.Numeric`                          | ✅                                  | ✅                           | Coerces string to number                |
+| `t.Files`, `t.Record`, `t.Tuple`     | ✅                                  | ✅                           | Files support `maxSize` / `type`        |
+| `t.Intersect`, `t.ObjectString`      | ✅                                  | ✅                           | ObjectString parses JSON strings        |
+| Lifecycle hooks                      | `onRequest`, `onBeforeHandle`, etc. | ✅ Same hooks                | Including `onMapResponse`               |
+| `onMapResponse`                      | ✅                                  | ✅                           | Runs after handler / before response    |
+| Plugin encapsulation                 | `.as('scoped'                       | 'global')`                   | ✅ Same                                 |
+| `.state()` / `.decorate()`           | ✅                                  | ✅                           | Injected into context                   |
+| `.mount()`                           | ✅                                  | ✅                           | Mount fetch-compatible apps             |
+| `.model()`                           | ✅                                  | ✅                           | Named reusable schemas + OpenAPI `$ref` |
+| `.trace()`                           | ✅                                  | ✅                           | Per-stage timing hooks                  |
+| Generator/SSE handlers               | `function* () { yield sse(...) }`   | ✅ Same                      | Auto `text/event-stream`                |
+| AOT compilation                      | `aot: false`                        | ✅ Same                      | Enabled by default                      |
+| WebSocket                            | `app.ws()`                          | ✅ Same                      | With pub/sub                            |
+| Treaty / Eden                        | `@elysiajs/eden`                    | ✅ `@goddo/treaty`           | End-to-end type-safe client             |
+| GraphQL plugin                       | `@elysiajs/graphql`                 | ❌ Not yet                   | Out of current scope                    |
+| OpenTelemetry                        | `@elysiajs/opentelemetry`           | ❌ Not yet                   | Out of current scope                    |
+| tRPC plugin                          | `@elysiajs/trpc`                    | ❌ Not yet                   | Out of current scope                    |
+
+For a practical migration example:
+
+```ts
+// ElysiaJS
+const app = new Elysia()
+  .state('version', '1.0')
+  .model('user', t.Object({ id: t.Number(), name: t.String() }))
+  .get('/', ({ version }) => version)
+  .post('/user', ({ body }) => body, { body: 'user' })
+  .listen(3000)
+
+// Goddo (Deno)
+const app = new Goddo()
+  .state('version', '1.0')
+  .model('user', t.Object({ id: t.Number(), name: t.String() }))
+  .get('/', ({ version }) => version)
+  .post('/user', ({ body }) => body, { body: 'user' })
+  .listen(3000)
+```
+
 ## Tasks
 
 | Task                 | Description                    |

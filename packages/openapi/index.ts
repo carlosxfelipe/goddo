@@ -8,7 +8,7 @@
  */
 import { toJSONSchema } from '@goddo/core/schema'
 import type { TObject, TSchema } from '@goddo/core/schema'
-import type { Route } from '@goddo/core/types'
+import type { ModelRef, Route } from '@goddo/core/types'
 import type { Goddo } from '@goddo/core'
 
 /**
@@ -42,11 +42,24 @@ const toOpenAPIPath = (path: string): string =>
     )
     .join('/')
 
+const schemaRef = (
+  schema: TSchema | ModelRef | undefined,
+): Record<string, unknown> => {
+  if (typeof schema === 'string') {
+    return { $ref: `#/components/schemas/${schema}` }
+  }
+  return toJSONSchema(schema as TSchema)
+}
+
 const paramsIn = (
-  schema: TSchema | undefined,
+  schema: TSchema | ModelRef | undefined,
   location: 'path' | 'query' | 'header',
 ): Record<string, unknown>[] => {
-  if (!schema || schema.type !== 'object') return []
+  if (!schema) return []
+  if (typeof schema === 'string') {
+    return []
+  }
+  if (schema.type !== 'object') return []
 
   return Object.entries((schema as TObject).properties).map(([name, property]) => ({
     name,
@@ -121,19 +134,28 @@ const buildPaths = (
       const contentType = typeof hooks.type === 'string' ? hooks.type : 'application/json'
       operation.requestBody = {
         required: true,
-        content: { [contentType]: { schema: toJSONSchema(hooks.body) } },
+        content: { [contentType]: { schema: schemaRef(hooks.body) } },
       }
     }
 
     const responses: Record<string, unknown> = {}
     if (hooks.response) {
-      if (typeof hooks.response === 'object' && !('type' in hooks.response)) {
+      if (typeof hooks.response === 'string') {
+        responses['200'] = {
+          description: 'OK',
+          content: {
+            'application/json': {
+              schema: schemaRef(hooks.response),
+            },
+          },
+        }
+      } else if (typeof hooks.response === 'object' && !('type' in hooks.response)) {
         for (const [status, schema] of Object.entries(hooks.response)) {
           responses[status] = {
             description: status === '200' ? 'OK' : 'Response',
             content: {
               'application/json': {
-                schema: toJSONSchema(schema as import('@goddo/core/schema').TSchema),
+                schema: schemaRef(schema as TSchema | ModelRef),
               },
             },
           }
@@ -143,7 +165,7 @@ const buildPaths = (
           description: 'OK',
           content: {
             'application/json': {
-              schema: toJSONSchema(hooks.response as import('@goddo/core/schema').TSchema),
+              schema: schemaRef(hooks.response as TSchema),
             },
           },
         }
@@ -252,6 +274,13 @@ export const openapi =
       }
     }
 
+    const components: Record<string, unknown> = {}
+    if (Object.keys(app.models).length > 0) {
+      components.schemas = Object.fromEntries(
+        Object.entries(app.models).map(([name, schema]) => [name, toJSONSchema(schema)]),
+      )
+    }
+
     return app
       .get(path, ({ set }) => {
         set.headers['content-type'] = 'text/html; charset=utf-8'
@@ -262,12 +291,25 @@ export const openapi =
         const uiVersion = options.version ?? 'latest'
         return scalarHTML(specPath, info.title, uiVersion, options.scalarConfig)
       })
-      .get(specPath, () => ({
-        openapi: '3.0.3',
-        ...documentation,
-        info,
-        paths: buildPaths(app.routes, exclude),
-      }))
+      .get(specPath, () => {
+        const mergedComponents = {
+          ...(documentation.components as object ?? {}),
+          ...components,
+          schemas: {
+            ...((documentation.components as Record<string, unknown> | undefined)
+              ?.schemas as object ?? {}),
+            ...(components.schemas as object ?? {}),
+          },
+        }
+
+        return {
+          openapi: '3.0.3',
+          ...documentation,
+          info,
+          paths: buildPaths(app.routes, exclude),
+          components: mergedComponents,
+        }
+      })
   }
 
 export default openapi

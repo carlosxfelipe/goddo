@@ -9,6 +9,7 @@ import type { Context } from './context.ts'
 import { mapResponse } from './handler.ts'
 import { GoddoError, NotFoundError } from './error.ts'
 import { validate } from './schema.ts'
+import type { TSchema } from './schema.ts'
 import { compileRoutes } from './compile.ts'
 import type { CompiledHandler } from './compile.ts'
 import { GoddoWebSocket, WS_CLEANUP } from './ws.ts'
@@ -26,8 +27,12 @@ import type {
   ListenOptions,
   LocalHooks,
   MacroDefinitions,
+  MaybePromise,
+  ModelRef,
+  PluginScope,
   Route,
   RouteRegistry,
+  TraceHandler,
   VoidHandler,
 } from './types.ts'
 
@@ -65,6 +70,12 @@ export class Goddo<
   /** Map of registered macro definitions. */
   macros: MacroDefinitions = {}
 
+  /** Named reusable schemas referenced by string in routes. */
+  models: Record<string, TSchema> = {}
+
+  /** Hook propagation scope applied when this instance is mounted via use(). */
+  scope: PluginScope = 'local'
+
   /** Compiled handler — set by compile(), used by listen() */
   private compiledHandler: CompiledHandler | null = null
 
@@ -83,6 +94,7 @@ export class Goddo<
     mapResponse: [],
     afterResponse: [],
     error: [],
+    trace: [],
     start: [],
     stop: [],
   }
@@ -295,6 +307,44 @@ export class Goddo<
   }
 
   /**
+   * Mounts a fetch-compatible application under a URL prefix.
+   *
+   * The mounted app can be a function `(request) => Response`, an object with
+   * a `handle` method, or any object exposing `fetch`.
+   * The prefix is stripped from the incoming path before forwarding.
+   *
+   * ```ts
+   * app.mount('/v1', (req) => new Response('v1'))
+   * ```
+   */
+  mount(
+    prefix: string,
+    app:
+      | ((request: Request) => MaybePromise<Response>)
+      | { handle?: (request: Request) => MaybePromise<Response> }
+      | { fetch?: (request: Request) => MaybePromise<Response> },
+  ): this {
+    const cleanPrefix = prefix.endsWith('/') ? prefix.slice(0, -1) : prefix
+    const pattern = `${cleanPrefix}/*`
+
+    const handleRequest = 'fetch' in app && typeof (app as { fetch?: unknown }).fetch === 'function'
+      ? (app as { fetch: (request: Request) => MaybePromise<Response> }).fetch
+      : 'handle' in app && typeof (app as { handle?: unknown }).handle === 'function'
+      ? (app as { handle: (request: Request) => MaybePromise<Response> }).handle
+      : app as (request: Request) => MaybePromise<Response>
+
+    this.all(pattern, async ({ request, params }) => {
+      const url = new URL(request.url)
+      const suffix = params['*'] ?? ''
+      url.pathname = `/${suffix}`
+
+      const mountedRequest = new Request(url, request)
+      return await handleRequest(mountedRequest)
+    })
+    return this
+  }
+
+  /**
    * Registers a route dynamically by HTTP method.
    */
   route<const M extends HTTPMethod, const Path extends string, const S extends LocalHooks>(
@@ -308,11 +358,20 @@ export class Goddo<
   }
 
   /**
-   * Injects shared state into all route contexts.
+   * Registers a named value in the shared state store.
+   * The value is injected directly into every route context.
+   *
+   * ```ts
+   * app.state('version', '1.0.0')
+   * app.get('/', ({ version }) => version)
+   * ```
    */
-  state<K extends string, V>(key: K, value: V): Goddo<InstanceContext & { [key in K]: V }, Routes> {
+  state<const K extends string, V>(
+    key: K,
+    value: V,
+  ): Goddo<InstanceContext & { [k in K]: V }, Routes> {
     this.store[key] = value
-    return this as unknown as Goddo<InstanceContext & { [key in K]: V }, Routes>
+    return this as unknown as Goddo<InstanceContext & { [k in K]: V }, Routes>
   }
 
   /**
@@ -346,6 +405,72 @@ export class Goddo<
     return this
   }
 
+  /**
+   * Registers a named reusable schema model.
+   *
+   * Models can be referenced in route schemas by their name:
+   *
+   * ```ts
+   * app.model('user', t.Object({ id: t.Number(), name: t.String() }))
+   * app.get('/users', () => ({ id: 1, name: 'Ada' }), { response: 'user' })
+   * ```
+   */
+  model(name: string, schema: TSchema): this {
+    this.models[name] = schema
+    return this
+  }
+
+  /** Resolve a schema or model reference into a concrete TSchema. */
+  private resolveModel(schema: TSchema | ModelRef): TSchema {
+    if (typeof schema !== 'string') return schema
+    const model = this.models[schema]
+    if (!model) throw new GoddoError(`Model '${schema}' not found`)
+    return model
+  }
+
+  /**
+   * Sets the hook propagation scope of this instance when mounted via `use()`.
+   *
+   * By default an instance plugin is **encapsulated** (`'local'`): its lifecycle
+   * hooks only apply to its own routes. Use `'scoped'` to propagate hooks to the
+   * parent instance, or `'global'` to propagate them to every ancestor.
+   *
+   * ```ts
+   * const plugin = new Goddo()
+   *   .onBeforeHandle(({ error, headers }) => {
+   *     if (!headers.authorization) throw error(401)
+   *   })
+   *   .as('scoped')
+   * ```
+   */
+  as(scope: 'scoped' | 'global'): this {
+    this.scope = scope
+    return this
+  }
+
+  /** Bake an instance's global lifecycle hooks into a route's local hooks (encapsulation). */
+  private bakeEventHooks(event: LifeCycleStore, hooks: LocalHooks): LocalHooks {
+    const result: LocalHooks = { ...hooks }
+
+    const bake = (key: keyof LocalHooks, globalHooks: unknown[]) => {
+      if (globalHooks.length === 0) return
+      result[key] = [...globalHooks, ...toArray(result[key])] as never
+    }
+
+    bake('request', event.request)
+    bake('parse', event.parse)
+    bake('transform', event.transform)
+    bake('derive', event.derive)
+    bake('beforeHandle', event.beforeHandle)
+    bake('resolve', event.resolve)
+    bake('afterHandle', event.afterHandle)
+    bake('mapResponse', event.mapResponse)
+    bake('afterResponse', event.afterResponse)
+    bake('error', event.error)
+
+    return result
+  }
+
   /** Merge a typed Goddo plugin instance, accumulating its routes in the type. */
   use<PluginContext extends Record<string, unknown>, PluginRoutes extends RouteRegistry>(
     plugin: Goddo<PluginContext, PluginRoutes>,
@@ -363,17 +488,40 @@ export class Goddo<
 
     const instance = plugin as Goddo
 
+    Object.assign(this.store, instance.store)
+    Object.assign(this.decorators, instance.decorators)
+    Object.assign(this.macros, instance.macros)
+    Object.assign(this.models, instance.models)
+
+    if (instance.scope === 'local') {
+      // Encapsulated: bake the plugin's global hooks into its own routes only
+      for (const route of instance.routes) {
+        this.add(
+          route.method,
+          route.path,
+          route.handler,
+          this.bakeEventHooks(instance.event, route.hooks),
+        )
+      }
+
+      // Server lifecycle events always propagate
+      this.event.start.push(...instance.event.start)
+      this.event.stop.push(...instance.event.stop)
+
+      return this
+    }
+
+    // 'scoped' | 'global': hooks propagate to this (parent) instance
     for (const route of instance.routes) {
       this.add(route.method, route.path, route.handler, route.hooks)
     }
 
-    Object.assign(this.store, instance.store)
-    Object.assign(this.decorators, instance.decorators)
-    Object.assign(this.macros, instance.macros)
-
     for (const key of Object.keys(this.event) as (keyof LifeCycleStore)[]) {
       ;(this.event[key] as unknown[]).push(...instance.event[key])
     }
+
+    // 'global' keeps propagating if this instance is mounted elsewhere
+    if (instance.scope === 'global' && this.scope === 'local') this.scope = 'global'
 
     return this
   }
@@ -434,9 +582,12 @@ export class Goddo<
 
     // Merge hook arrays (guard hooks prepended before local hooks)
     const hookKeys = [
+      'request',
       'parse',
       'transform',
+      'derive',
       'beforeHandle',
+      'resolve',
       'afterHandle',
       'mapResponse',
       'afterResponse',
@@ -517,6 +668,12 @@ export class Goddo<
     return this
   }
 
+  /** Registers a global mapResponse hook (transforms the payload before serialization). */
+  onMapResponse(handler: Handler<Context & InstanceContext & { response: unknown }>): this {
+    this.event.mapResponse.push(handler as Handler)
+    return this
+  }
+
   /** Registers a global afterResponse hook (runs before the response is finally sent). */
   onAfterResponse(handler: Handler<Context & InstanceContext & { response: Response }>): this {
     this.event.afterResponse.push(handler as Handler)
@@ -528,6 +685,20 @@ export class Goddo<
     handler: (context: Context & InstanceContext & { error: Error; code: string }) => unknown,
   ): this {
     this.event.error.push(handler as ErrorHandler)
+    return this
+  }
+
+  /**
+   * Registers a trace hook that receives timing information for each lifecycle stage.
+   *
+   * ```ts
+   * app.onTrace(({ event, duration }) => {
+   *   console.log(`${event}: ${duration.toFixed(3)}ms`)
+   * })
+   * ```
+   */
+  onTrace(handler: TraceHandler): this {
+    this.event.trace.push(handler)
     return this
   }
 
@@ -555,6 +726,7 @@ export class Goddo<
       Array.isArray(this.config.cookieSecret)
         ? this.config.cookieSecret[0]
         : this.config.cookieSecret,
+      this.models,
     )
     return this
   }
@@ -568,7 +740,10 @@ export class Goddo<
       ? this.config.cookieSecret[0]
       : this.config.cookieSecret
     const context = createContext(request, this.store, info, secret)
-    Object.assign(context, this.decorators)
+    Object.assign(context, this.store, this.decorators)
+
+    let route: ReturnType<Router['find']> = null
+    const handleStart = performance.now()
 
     try {
       // --- onRequest ---
@@ -577,10 +752,16 @@ export class Goddo<
         if (result !== undefined) return mapResponse(result, context.set, context.cookie)
       }
 
-      const route = this.router.find(request.method as HTTPMethod, context.path)
+      route = this.router.find(request.method as HTTPMethod, context.path)
       if (!route) throw new NotFoundError()
 
       context.params = route.params
+
+      // --- route-level onRequest ---
+      for (const hook of toArray(route.hooks.request)) {
+        const result = await hook(context)
+        if (result !== undefined) return mapResponse(result, context.set, context.cookie)
+      }
 
       // --- onParse ---
       if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -604,35 +785,35 @@ export class Goddo<
       }
 
       // --- derive (extends context before validation) ---
-      for (const hook of this.event.derive) {
+      for (const hook of [...this.event.derive, ...toArray(route.hooks.derive)]) {
         const derived = await hook(context)
         if (derived && typeof derived === 'object') Object.assign(context, derived)
       }
 
       // --- Validation ---
       if (route.hooks.params) {
-        context.params = validate(route.hooks.params, context.params, {
+        context.params = validate(this.resolveModel(route.hooks.params), context.params, {
           coerce: true,
           path: 'params',
         }) as Record<string, string>
       }
 
       if (route.hooks.query) {
-        context.query = validate(route.hooks.query, context.query, {
+        context.query = validate(this.resolveModel(route.hooks.query), context.query, {
           coerce: true,
           path: 'query',
         }) as Record<string, string>
       }
 
       if (route.hooks.headers) {
-        context.headers = validate(route.hooks.headers, context.headers, {
+        context.headers = validate(this.resolveModel(route.hooks.headers), context.headers, {
           coerce: true,
           path: 'headers',
         }) as Record<string, string>
       }
 
       if (route.hooks.body) {
-        context.body = validate(route.hooks.body, context.body, { path: 'body' })
+        context.body = validate(this.resolveModel(route.hooks.body), context.body, { path: 'body' })
       }
 
       if (route.hooks.cookie) {
@@ -641,11 +822,11 @@ export class Goddo<
         for (const name of context.cookie.keys()) {
           cookieObj[name] = context.cookie.get(name).value
         }
-        validate(route.hooks.cookie, cookieObj, { path: 'cookie' })
+        validate(this.resolveModel(route.hooks.cookie), cookieObj, { path: 'cookie' })
       }
 
       // --- resolve (extends context after validation) ---
-      for (const hook of this.event.resolve) {
+      for (const hook of [...this.event.resolve, ...toArray(route.hooks.resolve)]) {
         const resolved = await hook(context)
         if (resolved && typeof resolved === 'object') Object.assign(context, resolved)
       }
@@ -667,17 +848,32 @@ export class Goddo<
 
       // --- Response validation ---
       if (route.hooks.response) {
-        let resSchema: import('./types.ts').ResponseSchema | undefined = route.hooks.response
-        if (typeof resSchema === 'object' && resSchema !== null && !('type' in resSchema)) {
+        let resSchema: TSchema | undefined
+        if (typeof route.hooks.response === 'string') {
+          resSchema = this.resolveModel(route.hooks.response)
+        } else if (
+          typeof route.hooks.response === 'object' &&
+          route.hooks.response !== null &&
+          !('type' in route.hooks.response)
+        ) {
           const status = context.set.status || 200
-          const record = resSchema as Record<string | number, import('./schema.ts').TSchema>
-          resSchema = record[status] ?? record[String(status)]
+          const record = route.hooks.response as Record<string | number, TSchema | ModelRef>
+          const candidate = record[status] ?? record[String(status)]
+          if (candidate) resSchema = this.resolveModel(candidate)
+        } else {
+          resSchema = this.resolveModel(route.hooks.response as TSchema)
         }
         if (resSchema) {
-          response = validate(resSchema as import('./schema.ts').TSchema, response, {
+          response = validate(resSchema, response, {
             path: 'response',
           })
         }
+      }
+
+      // --- mapResponse ---
+      for (const hook of [...this.event.mapResponse, ...toArray(route.hooks.mapResponse)]) {
+        const result = await hook(Object.assign(context, { response }))
+        if (result !== undefined) response = result
       }
 
       const mapped = mapResponse(response, context.set, context.cookie)
@@ -693,7 +889,7 @@ export class Goddo<
       const code = error instanceof GoddoError ? error.code : 'UNKNOWN'
       const status = error instanceof GoddoError ? error.status : 500
 
-      for (const hook of this.event.error) {
+      for (const hook of [...this.event.error, ...toArray(route?.hooks.error)]) {
         const result = await hook(Object.assign(context, { error, code }))
         if (result !== undefined) {
           if (!context.set.status || context.set.status < 400) context.set.status = status
@@ -703,6 +899,12 @@ export class Goddo<
 
       return new Response(error.message, { status })
     } finally {
+      if (this.event.trace.length > 0) {
+        const duration = performance.now() - handleStart
+        for (const hook of this.event.trace) {
+          await hook(Object.assign(context, { event: 'handle', duration }))
+        }
+      }
       await runCleanups(context)
     }
   }
@@ -715,8 +917,8 @@ export class Goddo<
   listen(options: number | ListenOptions, callback?: (server: Deno.HttpServer) => void): this {
     const config: ListenOptions = typeof options === 'number' ? { port: options } : options
 
-    // AOT compile routes before serving
-    if (!this.compiledHandler) this.compile()
+    // AOT compile routes before serving unless explicitly disabled
+    if (this.config.aot !== false && !this.compiledHandler) this.compile()
 
     this.server = Deno.serve(
       {
@@ -756,6 +958,7 @@ export {
 export { t, validate } from './schema.ts'
 export type {
   ArrayOptions,
+  FileOptions,
   NumberOptions,
   ObjectOptions,
   OptionalKeys,
@@ -771,22 +974,29 @@ export type {
   TDate,
   TEnum,
   TFile,
+  TFiles,
   TInteger,
+  TIntersect,
   TLiteral,
   TNull,
   TNumber,
   TNumeric,
   TObject,
+  TObjectString,
   TOptional,
   TProperties,
+  TRecord,
   TSchema,
   TString,
+  TTuple,
   TUnion,
   TUnknown,
   ValidateOptions,
 } from './schema.ts'
 export { compileRoutes } from './compile.ts'
 export type { CompiledHandler, CompiledHooks, CompiledRoute } from './compile.ts'
+export { mapResponse, sse } from './handler.ts'
+export type { SSEMessage } from './handler.ts'
 export { Cookie, CookieJar, signCookie, verifyCookie } from './cookie.ts'
 export type { CookieAttributes, CookieProxy } from './cookie.ts'
 export { Router } from './router.ts'
@@ -812,14 +1022,17 @@ export type {
   MacroDefinitions,
   MacroFactory,
   MaybePromise,
+  ModelRef,
   ParamsFromPath,
   PathSegments,
+  PluginScope,
   ReservedSegmentsIn,
   ResponseSchema,
   Route,
   RouteEntry,
   RouteRegistry,
   RouteSchema,
+  TraceHandler,
   TreatyReservedSegment,
   VoidHandler,
 } from './types.ts'

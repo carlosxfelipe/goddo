@@ -247,6 +247,7 @@ Deno.test('Compiled route: compileRoutes works standalone', async () => {
       mapResponse: [],
       afterResponse: [],
       error: [],
+      trace: [],
       start: [],
       stop: [],
     },

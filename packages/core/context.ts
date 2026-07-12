@@ -166,8 +166,11 @@ export const parseBody = async (request: Request): Promise<unknown> => {
 
       case 'multipart/form-data': {
         const form = await request.formData()
-        const result: Record<string, FormDataEntryValue> = {}
-        for (const [key, value] of form) result[key] = value
+        const result: Record<string, FormDataEntryValue | FormDataEntryValue[]> = {}
+        for (const key of form.keys()) {
+          const values = form.getAll(key)
+          result[key] = values.length === 1 ? values[0]! : values
+        }
         return result
       }
 

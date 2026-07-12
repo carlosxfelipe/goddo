@@ -71,6 +71,16 @@ export interface ObjectOptions extends SchemaOptions {
   additionalProperties?: boolean
 }
 
+/** Options specific to file validation. */
+export interface FileOptions extends SchemaOptions {
+  /** Minimum file size in bytes. */
+  minSize?: number
+  /** Maximum file size in bytes. */
+  maxSize?: number
+  /** Accepted MIME type(s). Supports wildcards, e.g. `image/*`. */
+  type?: string | string[]
+}
+
 /** Schema representing a string. */
 export interface TString extends TSchema, StringOptions {
   /** Inferred TypeScript type. */
@@ -135,12 +145,27 @@ export interface TUnknown extends TSchema {
   type: 'unknown'
 }
 
+/** Internal representation of file options after the `type` key is renamed. */
+interface FileSchemaOptions extends SchemaOptions {
+  minSize?: number
+  maxSize?: number
+  mimeType?: string | string[]
+}
+
 /** Schema representing a File object. */
-export interface TFile extends TSchema {
+export interface TFile extends TSchema, FileSchemaOptions {
   /** Inferred TypeScript type. */
   static: File
   /** String literal type identifier. */
   type: 'file'
+}
+
+/** Schema representing an array of File objects (multipart file upload). */
+export interface TFiles extends TSchema, FileSchemaOptions {
+  /** Inferred TypeScript type. */
+  static: File[]
+  /** String literal type identifier. */
+  type: 'files'
 }
 
 /** Schema representing a Date object. */
@@ -172,6 +197,34 @@ export interface TUnion<T extends TSchema[] = TSchema[]> extends TSchema {
   anyOf: T
 }
 
+/** Computes the intersection of a tuple of static schema types. */
+export type IntersectStatics<T extends readonly TSchema[]> = T extends readonly [
+  infer F extends TSchema,
+  ...infer Rest extends readonly TSchema[],
+] ? Rest extends readonly [] ? F['static']
+  : F['static'] & IntersectStatics<Rest>
+  : unknown
+
+/** Schema representing an intersection of multiple schemas (must satisfy all). */
+export interface TIntersect<T extends readonly TSchema[] = readonly TSchema[]> extends TSchema {
+  /** Inferred TypeScript type. */
+  static: IntersectStatics<T>
+  /** String literal type identifier. */
+  type: 'intersect'
+  /** The schemas that must all be satisfied. */
+  allOf: T
+}
+
+/** Schema representing a string that encodes an object (e.g. JSON in query/cookie). */
+export interface TObjectString<T extends TSchema = TSchema> extends TSchema {
+  /** Inferred TypeScript type. */
+  static: T['static']
+  /** String literal type identifier. */
+  type: 'objectString'
+  /** The schema the parsed string object must satisfy. */
+  properties: T
+}
+
 /** Schema representing an enum of specific values. */
 export interface TEnum<T extends Record<string, string | number> = Record<string, string | number>>
   extends TSchema {
@@ -190,6 +243,26 @@ export interface TArray<T extends TSchema = TSchema> extends TSchema, ArrayOptio
   /** String literal type identifier. */
   type: 'array'
   /** The schema for the array items. */
+  items: T
+}
+
+/** Schema representing a record of arbitrary string keys to typed values. */
+export interface TRecord<T extends TSchema = TSchema> extends TSchema {
+  /** Inferred TypeScript type. */
+  static: Record<string, T['static']>
+  /** String literal type identifier. */
+  type: 'record'
+  /** The schema each record value is validated against. */
+  items: T
+}
+
+/** Schema representing a fixed-length tuple of typed items. */
+export interface TTuple<T extends readonly TSchema[] = readonly TSchema[]> extends TSchema {
+  /** Inferred TypeScript type. */
+  static: { [K in keyof T]: T[K]['static'] }
+  /** String literal type identifier. */
+  type: 'tuple'
+  /** The schemas for each tuple position. */
   items: T
 }
 
@@ -247,7 +320,15 @@ const Any = (options: SchemaOptions = {}): TAny => ({ ...options, type: 'any' })
 const Unknown = (options: SchemaOptions = {}): TUnknown =>
   ({ ...options, type: 'unknown' }) as TUnknown
 
-const FileSchema = (options: SchemaOptions = {}): TFile => ({ ...options, type: 'file' }) as TFile
+const FileSchema = (options: FileOptions = {}): TFile => {
+  const { type, ...rest } = options
+  return { ...rest, mimeType: type, type: 'file' } as unknown as TFile
+}
+
+const FilesSchema = (options: FileOptions = {}): TFiles => {
+  const { type, ...rest } = options
+  return { ...rest, mimeType: type, type: 'files' } as unknown as TFiles
+}
 
 const DateSchema = (options: SchemaOptions = {}): TDate => ({ ...options, type: 'date' }) as TDate
 
@@ -264,6 +345,16 @@ const Literal = <const T extends string | number | boolean>(
 const Union = <const T extends TSchema[]>(anyOf: T, options: SchemaOptions = {}): TUnion<T> =>
   ({ ...options, type: 'union', anyOf }) as TUnion<T>
 
+const Intersect = <const T extends readonly TSchema[]>(
+  allOf: T,
+  options: SchemaOptions = {},
+): TIntersect<T> => ({ ...options, type: 'intersect', allOf }) as TIntersect<T>
+
+const ObjectString = <T extends TSchema>(
+  properties: T,
+  options: SchemaOptions = {},
+): TObjectString<T> => ({ ...options, type: 'objectString', properties }) as TObjectString<T>
+
 const Enum = <const T extends Record<string, string | number>>(
   values: T,
   options: SchemaOptions = {},
@@ -278,6 +369,14 @@ const Nullable = <T extends TSchema>(schema: T): TUnion<[T, TNull]> => Union([sc
 
 const ArraySchema = <T extends TSchema>(items: T, options: ArrayOptions = {}): TArray<T> =>
   ({ ...options, type: 'array', items }) as TArray<T>
+
+const RecordSchema = <T extends TSchema>(items: T, options: SchemaOptions = {}): TRecord<T> =>
+  ({ ...options, type: 'record', items }) as TRecord<T>
+
+const TupleSchema = <const T extends readonly TSchema[]>(
+  items: T,
+  options: SchemaOptions = {},
+): TTuple<T> => ({ ...options, type: 'tuple', items }) as TTuple<T>
 
 const ObjectSchema = <P extends TProperties>(
   properties: P,
@@ -302,9 +401,14 @@ export const t = {
   Enum,
   Nullable,
   Array: ArraySchema,
+  Record: RecordSchema,
+  Tuple: TupleSchema,
   Object: ObjectSchema,
   Optional,
+  Intersect,
+  ObjectString,
   File: FileSchema,
+  Files: FilesSchema,
   Date: DateSchema,
 }
 
@@ -359,11 +463,20 @@ export const toJSONSchema = (schema: TSchema): Record<string, unknown> => {
     case 'file':
       return { ...base, type: 'string', format: 'binary' }
 
+    case 'files':
+      return { ...base, type: 'array', items: { type: 'string', format: 'binary' } }
+
     case 'date':
       return { ...base, type: 'string', format: 'date-time' }
 
     case 'union':
       return { ...base, anyOf: (schema as TUnion).anyOf.map(toJSONSchema) }
+
+    case 'intersect':
+      return { ...base, allOf: (schema as TIntersect).allOf.map(toJSONSchema) }
+
+    case 'objectString':
+      return { ...base, type: 'string', description: (schema as TObjectString).properties.type }
 
     case 'array': {
       const s = schema as TArray
@@ -373,6 +486,24 @@ export const toJSONSchema = (schema: TSchema): Record<string, unknown> => {
         items: toJSONSchema(s.items),
         ...(s.minItems !== undefined && { minItems: s.minItems }),
         ...(s.maxItems !== undefined && { maxItems: s.maxItems }),
+      }
+    }
+
+    case 'record':
+      return {
+        ...base,
+        type: 'object',
+        additionalProperties: toJSONSchema((schema as TRecord).items),
+      }
+
+    case 'tuple': {
+      const s = schema as TTuple
+      return {
+        ...base,
+        type: 'array',
+        prefixItems: s.items.map(toJSONSchema),
+        minItems: s.items.length,
+        maxItems: s.items.length,
       }
     }
 
@@ -436,6 +567,47 @@ const fail = (schema: TSchema, path: string, message: string): never => {
   throw new ValidationError(schema.error ?? `${path}: ${message}`)
 }
 
+const matchesMime = (expected: string, actual: string): boolean => {
+  if (expected === actual) return true
+  if (expected.endsWith('/*')) {
+    return actual.startsWith(expected.slice(0, -1))
+  }
+  return false
+}
+
+const checkFile = (schema: TFile, value: unknown, path: string): unknown => {
+  const single = schema.type === 'file'
+
+  const files = single
+    ? (value instanceof File ? [value] : null)
+    : (Array.isArray(value) && value.every((v) => v instanceof File) ? value : null)
+
+  if (files === null) {
+    return fail(schema, path, `Expected ${schema.type}, got ${display(value)}`)
+  }
+
+  if (
+    schema.minSize !== undefined || schema.maxSize !== undefined || schema.mimeType !== undefined
+  ) {
+    for (const file of files) {
+      if (schema.minSize !== undefined && file.size < schema.minSize) {
+        return fail(schema, path, `Expected file size >= ${schema.minSize} bytes`)
+      }
+      if (schema.maxSize !== undefined && file.size > schema.maxSize) {
+        return fail(schema, path, `Expected file size <= ${schema.maxSize} bytes`)
+      }
+      if (schema.mimeType !== undefined) {
+        const accepted = Array.isArray(schema.mimeType) ? schema.mimeType : [schema.mimeType]
+        if (!accepted.some((t) => matchesMime(t, file.type))) {
+          return fail(schema, path, `Expected file type ${accepted.join(' or ')}, got ${file.type}`)
+        }
+      }
+    }
+  }
+
+  return single ? files[0] : files
+}
+
 const checkFormat = (format: string, value: string): boolean => {
   switch (format) {
     case 'email':
@@ -468,10 +640,8 @@ const check = (schema: TSchema, value: unknown, path: string, coerce: boolean): 
       return value
 
     case 'file':
-      if (!(value instanceof File)) {
-        return fail(schema, path, `Expected File, got ${display(value)}`)
-      }
-      return value
+    case 'files':
+      return checkFile(schema as TFile, value, path)
 
     case 'date': {
       let d = value
@@ -574,6 +744,31 @@ const check = (schema: TSchema, value: unknown, path: string, coerce: boolean): 
       return fail(schema, path, `Expected union member, got ${display(value)}`)
     }
 
+    case 'intersect': {
+      const { allOf } = schema as TIntersect
+      let result: unknown = value
+      for (const member of allOf) {
+        result = check(member, result, path, coerce)
+      }
+      return result
+    }
+
+    case 'objectString': {
+      const s = schema as TObjectString
+      let data = value
+      if (typeof value === 'string') {
+        if (!coerce) {
+          return fail(schema, path, `Expected object string, got ${display(value)}`)
+        }
+        try {
+          data = JSON.parse(value)
+        } catch {
+          return fail(schema, path, `Invalid object string: ${display(value)}`)
+        }
+      }
+      return check(s.properties, data, path, coerce)
+    }
+
     case 'array': {
       if (!Array.isArray(value)) {
         return fail(schema, path, `Expected array, got ${display(value)}`)
@@ -586,6 +781,32 @@ const check = (schema: TSchema, value: unknown, path: string, coerce: boolean): 
         return fail(schema, path, `Expected array length <= ${s.maxItems}`)
       }
       return value.map((item, index) => check(s.items, item, `${path}[${index}]`, coerce))
+    }
+
+    case 'record': {
+      const s = schema as TRecord
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        return fail(schema, path, `Expected object, got ${display(value)}`)
+      }
+      const input = value as Record<string, unknown>
+      const result: Record<string, unknown> = {}
+      for (const [key, item] of Object.entries(input)) {
+        result[key] = check(s.items, item, `${path}.${key}`, coerce)
+      }
+      return result
+    }
+
+    case 'tuple': {
+      const s = schema as TTuple
+      if (!Array.isArray(value)) {
+        return fail(schema, path, `Expected tuple, got ${display(value)}`)
+      }
+      if (value.length !== s.items.length) {
+        return fail(schema, path, `Expected tuple length ${s.items.length}, got ${value.length}`)
+      }
+      return s.items.map((itemSchema, index) =>
+        check(itemSchema, value[index], `${path}[${index}]`, coerce)
+      )
     }
 
     case 'object': {
@@ -606,9 +827,7 @@ const check = (schema: TSchema, value: unknown, path: string, coerce: boolean): 
         if (s.additionalProperties === false) {
           return fail(s, `${path}.${key}`, 'Unexpected property')
         }
-        if (s.additionalProperties === true) {
-          result[key] = input[key]
-        }
+        result[key] = input[key]
       }
 
       return result

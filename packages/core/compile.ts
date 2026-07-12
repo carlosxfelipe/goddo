@@ -11,8 +11,7 @@ import { CookieJar } from './cookie.ts'
 import type { Context, SetContext } from './context.ts'
 import type { CookieProxy } from './cookie.ts'
 import type { TSchema } from './schema.ts'
-import type { ResponseSchema } from './types.ts'
-import type { Handler, HTTPMethod, LifeCycleStore, LocalHooks } from './types.ts'
+import type { Handler, HTTPMethod, LifeCycleStore, LocalHooks, ModelRef } from './types.ts'
 import type { RouteMatch } from './router.ts'
 
 const toArray = <T>(value?: T | T[]): T[] => {
@@ -31,6 +30,8 @@ const isAsyncFn = (fn: Handler): boolean => {
 export interface CompiledHooks {
   /** Global request hooks. */
   request: Handler[]
+  /** Route-level request hooks (run right after route matching). */
+  localRequest: Handler[]
   /** Request parse hooks. */
   parse: Handler[]
   /** Context transform hooks. */
@@ -43,6 +44,8 @@ export interface CompiledHooks {
   resolve: Handler[]
   /** Post-handler hooks. */
   afterHandle: Handler[]
+  /** Response mapping hooks (transform the payload before serialization). */
+  mapResponse: Handler[]
   /** Post-response hooks. */
   afterResponse: Handler[]
   /** Error handlers. */
@@ -62,12 +65,14 @@ export interface CompiledRoute {
   /** The pre-compiled execution context flags and hooks. */
   compiled: {
     hooks: CompiledHooks
+    hasLocalRequest: boolean
     hasParse: boolean
     hasTransform: boolean
     hasDerive: boolean
     hasResolve: boolean
     hasBeforeHandle: boolean
     hasAfterHandle: boolean
+    hasMapResponse: boolean
     hasAfterResponse: boolean
     hasParams: boolean
     hasQuery: boolean
@@ -99,19 +104,28 @@ export const compileRoutes = (
   router: { find(method: HTTPMethod, path: string): RouteMatch | null },
   errorHooks: ((ctx: Context & { error: Error; code: string }) => unknown)[],
   cookieSecret?: string,
+  models: Record<string, TSchema> = {},
 ): CompiledHandler => {
+  const resolveModel = (schema: TSchema | string): TSchema => {
+    if (typeof schema !== 'string') return schema
+    const model = models[schema]
+    if (!model) throw new GoddoError(`Model '${schema}' not found`)
+    return model
+  }
   // Pre-merge hooks for each route
   const compiledRoutes: CompiledRoute[] = routes.map((route) => {
     const hooks: CompiledHooks = {
       request: event.request,
+      localRequest: toArray(route.hooks.request),
       parse: [...event.parse, ...toArray(route.hooks.parse)],
       transform: [...event.transform, ...toArray(route.hooks.transform)],
-      derive: event.derive,
+      derive: [...event.derive, ...toArray(route.hooks.derive)],
       beforeHandle: [...event.beforeHandle, ...toArray(route.hooks.beforeHandle)],
-      resolve: event.resolve,
-      afterHandle: [...event.afterHandle, ...toArray(route.hooks.afterHandle)],
+      resolve: [...event.resolve, ...toArray(route.hooks.resolve)],
+      afterHandle: [...event.afterHandle, ...toArray(route.hooks.afterHandle) as Handler[]],
+      mapResponse: [...event.mapResponse, ...toArray(route.hooks.mapResponse) as Handler[]],
       afterResponse: [...event.afterResponse, ...toArray(route.hooks.afterResponse)],
-      error: errorHooks,
+      error: [...errorHooks, ...toArray(route.hooks.error)],
     }
 
     return {
@@ -121,12 +135,14 @@ export const compileRoutes = (
       hooks: route.hooks,
       compiled: {
         hooks,
+        hasLocalRequest: hooks.localRequest.length > 0,
         hasParse: hooks.parse.length > 0,
         hasTransform: hooks.transform.length > 0,
         hasDerive: hooks.derive.length > 0,
         hasResolve: hooks.resolve.length > 0,
         hasBeforeHandle: hooks.beforeHandle.length > 0,
         hasAfterHandle: hooks.afterHandle.length > 0,
+        hasMapResponse: hooks.mapResponse.length > 0,
         hasAfterResponse: hooks.afterResponse.length > 0,
         hasParams: !!route.hooks.params,
         hasQuery: !!route.hooks.query,
@@ -273,20 +289,37 @@ export const compileRoutes = (
     const set: SetContext = { headers: {} }
 
     const context = new GoddoContext(request, path, method, urlStr, pathEnd, set, store, info)
-    Object.assign(context, decorators)
+    Object.assign(context, store, decorators)
+
+    const hasTrace = event.trace.length > 0
+    const runTrace = async (name: string, start: number) => {
+      if (!hasTrace) return
+      const duration = performance.now() - start
+      for (const hook of event.trace) {
+        await hook(Object.assign(context, { event: name, duration }))
+      }
+    }
+
+    let cr: CompiledRoute | undefined
 
     try {
+      let stageStart = performance.now()
+
       // --- onRequest (global only, pre-compiled) ---
       if (hasGlobalRequest) {
         for (const hook of event.request) {
           const result = await hook(context)
-          if (result !== undefined) return mapResponse(result, set, context.getJar())
+          if (result !== undefined) {
+            await runTrace('request', stageStart)
+            return mapResponse(result, set, context.getJar())
+          }
         }
       }
+      await runTrace('request', stageStart)
 
       // --- Route lookup ---
       // Fast path: static route O(1)
-      let cr: CompiledRoute | undefined = staticMap.get(`${method}:${path}`)
+      cr = staticMap.get(`${method}:${path}`)
 
       // Fallback to radix tree for dynamic routes
       if (!cr) {
@@ -301,7 +334,21 @@ export const compileRoutes = (
       const c = cr.compiled
       const ch = c.hooks
 
+      // --- route-level onRequest ---
+      stageStart = performance.now()
+      if (c.hasLocalRequest) {
+        for (const hook of ch.localRequest) {
+          const result = await hook(context)
+          if (result !== undefined) {
+            await runTrace('localRequest', stageStart)
+            return mapResponse(result, set, context.getJar())
+          }
+        }
+      }
+      await runTrace('localRequest', stageStart)
+
       // --- onParse ---
+      stageStart = performance.now()
       if (method !== 'GET' && method !== 'HEAD') {
         if (c.hasParse) {
           for (const hook of ch.parse) {
@@ -316,46 +363,52 @@ export const compileRoutes = (
           context.body = await parseBody(request)
         }
       }
+      await runTrace('parse', stageStart)
 
       // --- onTransform ---
+      stageStart = performance.now()
       if (c.hasTransform) {
         for (const hook of ch.transform) {
           await hook(context)
         }
       }
+      await runTrace('transform', stageStart)
 
       // --- derive ---
+      stageStart = performance.now()
       if (c.hasDerive) {
         for (const hook of ch.derive) {
           const derived = await hook(context)
           if (derived && typeof derived === 'object') Object.assign(context, derived)
         }
       }
+      await runTrace('derive', stageStart)
 
       // --- Validation (pre-computed flags, no conditional on schema existence) ---
+      stageStart = performance.now()
       if (c.hasParams) {
-        context.params = validate(cr.hooks.params!, context.params, {
+        context.params = validate(resolveModel(cr.hooks.params!), context.params, {
           coerce: true,
           path: 'params',
         }) as Record<string, string>
       }
 
       if (c.hasQuery) {
-        context.query = validate(cr.hooks.query!, context.query, {
+        context.query = validate(resolveModel(cr.hooks.query!), context.query, {
           coerce: true,
           path: 'query',
         }) as Record<string, string>
       }
 
       if (c.hasHeaders) {
-        context.headers = validate(cr.hooks.headers!, context.headers, {
+        context.headers = validate(resolveModel(cr.hooks.headers!), context.headers, {
           coerce: true,
           path: 'headers',
         }) as Record<string, string>
       }
 
       if (c.hasBody) {
-        context.body = validate(cr.hooks.body!, context.body, { path: 'body' })
+        context.body = validate(resolveModel(cr.hooks.body!), context.body, { path: 'body' })
       }
 
       if (c.hasCookie) {
@@ -368,26 +421,35 @@ export const compileRoutes = (
         for (const name of jar.keys()) {
           cookieObj[name] = jar.get(name).value
         }
-        validate(cr.hooks.cookie!, cookieObj, { path: 'cookie' })
+        validate(resolveModel(cr.hooks.cookie!), cookieObj, { path: 'cookie' })
       }
+      await runTrace('validation', stageStart)
 
       // --- resolve ---
+      stageStart = performance.now()
       if (c.hasResolve) {
         for (const hook of ch.resolve) {
           const resolved = await hook(context)
           if (resolved && typeof resolved === 'object') Object.assign(context, resolved)
         }
       }
+      await runTrace('resolve', stageStart)
 
       // --- onBeforeHandle ---
+      stageStart = performance.now()
       if (c.hasBeforeHandle) {
         for (const hook of ch.beforeHandle) {
           const result = await hook(context)
-          if (result !== undefined) return mapResponse(result, set, context.getJar())
+          if (result !== undefined) {
+            await runTrace('beforeHandle', stageStart)
+            return mapResponse(result, set, context.getJar())
+          }
         }
       }
+      await runTrace('beforeHandle', stageStart)
 
       // --- Handler (sucrose: skip await for sync handlers) ---
+      stageStart = performance.now()
       let response: unknown
       if (c.handlerIsAsync) {
         response = await cr.handler(context)
@@ -397,38 +459,64 @@ export const compileRoutes = (
           response = await response
         }
       }
+      await runTrace('handler', stageStart)
 
       // --- onAfterHandle ---
+      stageStart = performance.now()
       if (c.hasAfterHandle) {
         for (const hook of ch.afterHandle) {
           const result = await hook(Object.assign(context, { response }))
           if (result !== undefined) response = result
         }
       }
+      await runTrace('afterHandle', stageStart)
 
       // --- Response validation ---
+      stageStart = performance.now()
       if (c.hasResponse) {
-        let resSchema: ResponseSchema | undefined = cr.hooks.response
-        if (typeof resSchema === 'object' && resSchema !== null && !('type' in resSchema)) {
+        let resSchema: TSchema | undefined
+        if (typeof cr.hooks.response === 'string') {
+          resSchema = resolveModel(cr.hooks.response)
+        } else if (
+          typeof cr.hooks.response === 'object' &&
+          cr.hooks.response !== null &&
+          !('type' in cr.hooks.response)
+        ) {
           const status = set.status || 200
-          const record = resSchema as Record<string | number, TSchema>
-          resSchema = record[status] ?? record[String(status)]
+          const record = cr.hooks.response as Record<string | number, TSchema | ModelRef>
+          const candidate = record[status] ?? record[String(status)]
+          if (candidate) resSchema = resolveModel(candidate)
+        } else {
+          resSchema = resolveModel(cr.hooks.response as TSchema)
         }
         if (resSchema) {
-          response = validate(resSchema as TSchema, response, {
+          response = validate(resSchema, response, {
             path: 'response',
           })
         }
       }
+      await runTrace('responseValidation', stageStart)
+
+      // --- mapResponse ---
+      stageStart = performance.now()
+      if (c.hasMapResponse) {
+        for (const hook of ch.mapResponse) {
+          const result = await hook(Object.assign(context, { response }))
+          if (result !== undefined) response = result
+        }
+      }
+      await runTrace('mapResponse', stageStart)
 
       const mapped = mapResponse(response, set, context.getJar())
 
       // --- onAfterResponse ---
+      stageStart = performance.now()
       if (c.hasAfterResponse) {
         for (const hook of ch.afterResponse) {
           await hook(Object.assign(context, { response: mapped }))
         }
       }
+      await runTrace('afterResponse', stageStart)
 
       return mapped
     } catch (err) {
@@ -436,8 +524,9 @@ export const compileRoutes = (
       const code = error instanceof GoddoError ? error.code : 'UNKNOWN'
       const status = error instanceof GoddoError ? error.status : 500
 
-      if (hasGlobalError) {
-        for (const hook of errorHooks) {
+      const routeErrorHooks = cr?.compiled.hooks.error ?? errorHooks
+      if (hasGlobalError || routeErrorHooks.length > 0) {
+        for (const hook of routeErrorHooks) {
           const result = await hook(Object.assign(context, { error, code }))
           if (result !== undefined) {
             if (!set.status || set.status < 400) set.status = status

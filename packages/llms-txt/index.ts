@@ -81,8 +81,8 @@ const buildMarkdown = (
     const hasParams = route.hooks.params || route.hooks.query || route.hooks.headers
     if (hasParams) {
       lines.push('### Parameters')
-      const printParams = (schema: TSchema | undefined, loc: string) => {
-        if (!schema || schema.type !== 'object') return
+      const printParams = (schema: TSchema | string | undefined, loc: string) => {
+        if (!schema || typeof schema === 'string' || schema.type !== 'object') return
         for (const [name, prop] of Object.entries((schema as TObject).properties)) {
           const p = prop as TSchema
           const req = loc === 'path' ? true : !(p.optional || p.default !== undefined)
@@ -98,7 +98,9 @@ const buildMarkdown = (
 
     if (route.hooks.body) {
       lines.push('### Request Body')
-      if (route.hooks.body.type === 'object') {
+      if (typeof route.hooks.body === 'string') {
+        lines.push(`- ${route.hooks.body}`)
+      } else if (route.hooks.body.type === 'object') {
         lines.push(formatSchemaProperty(route.hooks.body).trim())
       } else {
         lines.push(`- ${route.hooks.body.type}`)

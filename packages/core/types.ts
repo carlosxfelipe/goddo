@@ -30,23 +30,26 @@ export type MaybePromise<T> = T | Promise<T>
 /** A standard route handler function. */
 export type Handler<C = Context> = (context: C) => MaybePromise<unknown>
 
+/** A reference to a named model registered with `app.model()`. */
+export type ModelRef = string
+
 /** Defines the expected response schema, optionally mapped by HTTP status code. */
-export type ResponseSchema = TSchema | Record<number | string, TSchema>
+export type ResponseSchema = TSchema | ModelRef | Record<number | string, TSchema | ModelRef>
 
 /** Schema definitions for validating a route's inputs and outputs. */
 export interface RouteSchema {
-  /** Schema for the request body. */
-  body?: TSchema
-  /** Schema for the query string parameters. */
-  query?: TSchema
-  /** Schema for the URL path parameters. */
-  params?: TSchema
-  /** Schema for the request headers. */
-  headers?: TSchema
-  /** Schema for the HTTP response. */
+  /** Schema for the request body (or a named model reference). */
+  body?: TSchema | ModelRef
+  /** Schema for the query string parameters (or a named model reference). */
+  query?: TSchema | ModelRef
+  /** Schema for the URL path parameters (or a named model reference). */
+  params?: TSchema | ModelRef
+  /** Schema for the request headers (or a named model reference). */
+  headers?: TSchema | ModelRef
+  /** Schema for the HTTP response (or a named model reference). */
   response?: ResponseSchema
-  /** Schema for the cookies. */
-  cookie?: TSchema
+  /** Schema for the cookies (or a named model reference). */
+  cookie?: TSchema | ModelRef
 }
 
 /** Extracts URL parameters from a path string. */
@@ -92,6 +95,8 @@ export interface LifeCycleStore {
   afterResponse: Handler[]
   /** Hook for handling errors. */
   error: ErrorHandler[]
+  /** Hook for receiving per-stage timing traces. */
+  trace: TraceHandler[]
   /** Hook running when the server starts. */
   start: VoidHandler[]
   /** Hook running when the server stops. */
@@ -106,8 +111,21 @@ export type ErrorHandler = (
   context: Context & { error: Error; code: string },
 ) => MaybePromise<unknown>
 
+/** A handler that receives timing information for a lifecycle stage. */
+export type TraceHandler = (
+  context: Context & { event: string; duration: number },
+) => MaybePromise<unknown>
+
 /** A lifecycle handler that returns no value, used for start/stop events. */
 export type VoidHandler = (app: unknown) => MaybePromise<void>
+
+/**
+ * Hook propagation scope applied when an instance is mounted via `use()`.
+ * - `'local'` (default): hooks only apply to the plugin's own routes.
+ * - `'scoped'`: hooks propagate to the direct parent instance.
+ * - `'global'`: hooks propagate to every ancestor instance.
+ */
+export type PluginScope = 'local' | 'scoped' | 'global'
 
 /** OpenAPI document details for a specific route. */
 export interface DocumentDetail {
@@ -137,16 +155,26 @@ export type MacroDefinitions = Record<string, MacroFactory>
 export interface LocalHooks extends RouteSchema {
   /** OpenAPI documentation details. */
   detail?: DocumentDetail
+  /** Local request hook (runs right after route matching). */
+  request?: Handler | Handler[]
   /** Local parse hook. */
   parse?: Handler | Handler[]
   /** Local transform hook. */
   transform?: Handler | Handler[]
+  /** Local derive hook (extends the context before validation). */
+  derive?: Handler | Handler[]
+  /** Local resolve hook (extends the context after validation). */
+  resolve?: Handler | Handler[]
   /** Local beforeHandle hook. */
   beforeHandle?: Handler | Handler[]
   /** Local afterHandle hook. */
-  afterHandle?: Handler | Handler[]
+  afterHandle?: Handler<Context & { response: unknown }> | Handler<
+    Context & { response: unknown }
+  >[]
   /** Local mapResponse hook. */
-  mapResponse?: Handler | Handler[]
+  mapResponse?: Handler<Context & { response: unknown }> | Handler<
+    Context & { response: unknown }
+  >[]
   /** Local afterResponse hook. */
   afterResponse?: Handler | Handler[]
   /** Local error hook. */
@@ -185,6 +213,12 @@ export interface GoddoConfig {
   prefix?: string
   /** Secret key(s) used for signing and verifying cookies. */
   cookieSecret?: string | string[]
+  /**
+   * Whether to compile routes ahead-of-time before serving.
+   * When `false`, requests are handled by the interpreted path.
+   * Default: `true`
+   */
+  aot?: boolean
 }
 
 // ---------------------------------------------------------------------------
