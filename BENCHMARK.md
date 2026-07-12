@@ -28,10 +28,10 @@ For comparison, here is the performance of the exact same API built with
 
 | Benchmark                              | Time/iter (avg) | (min … max)             | p99      |
 | -------------------------------------- | --------------- | ----------------------- | -------- |
-| **GET /** (Redirect)                   | 996.15 ns       | (708.00 ns … 509.92 µs) | 4.21 µs  |
-| **GET /page** (HTML rendering)         | 7.23 µs         | (4.79 µs … 5.85 ms)     | 26.17 µs |
-| **GET /todos/** (List todos)           | 2.01 µs         | (1.50 µs … 591.50 µs)   | 6.96 µs  |
-| **GET /todos/1** (Get a specific todo) | 1.99 µs         | (1.50 µs … 615.75 µs)   | 6.83 µs  |
-| **POST /todos/** (Create todo)         | 3.67 µs         | (2.67 µs … 1.74 ms)     | 14.71 µs |
-| **PUT /todos/1** (Update todo)         | 3.90 µs         | (3.04 µs … 677.75 µs)   | 12.71 µs |
-| **DELETE /todos/2** (Delete todo)      | 2.38 µs         | (1.58 µs … 710.29 µs)   | 10.00 µs |
+| **GET /** (Redirect)                   | 1.03 µs         | (750.00 ns … 448.58 µs) | 4.50 µs  |
+| **GET /page** (HTML rendering)         | 10.38 µs        | (7.58 µs … 5.30 ms)     | 30.33 µs |
+| **GET /todos/** (List todos)           | 1.83 µs         | (1.42 µs … 431.29 µs)   | 6.21 µs  |
+| **GET /todos/1** (Get a specific todo) | 1.86 µs         | (1.38 µs … 452.08 µs)   | 6.58 µs  |
+| **POST /todos/** (Create todo)         | 3.58 µs         | (2.58 µs … 1.56 ms)     | 14.42 µs |
+| **PATCH /todos/1** (Update todo)       | 4.06 µs         | (3.08 µs … 596.29 µs)   | 15.17 µs |
+| **DELETE /todos/2** (Delete todo)      | 2.18 µs         | (1.63 µs … 661.17 µs)   | 6.67 µs  |
