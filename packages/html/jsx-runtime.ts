@@ -1,3 +1,9 @@
+/**
+ * @module
+ * JSX Runtime for @goddo/html.
+ * Provides the required functions for Deno/TypeScript to compile JSX elements.
+ */
+
 export type { JSX } from './types.ts'
 
 /** Represents a raw HTML string that should not be escaped. */

@@ -146,9 +146,12 @@ export interface TUnknown extends TSchema {
 }
 
 /** Internal representation of file options after the `type` key is renamed. */
-interface FileSchemaOptions extends SchemaOptions {
+export interface FileSchemaOptions extends SchemaOptions {
+  /** Minimum file size in bytes */
   minSize?: number
+  /** Maximum file size in bytes */
   maxSize?: number
+  /** Allowed MIME types */
   mimeType?: string | string[]
 }
 

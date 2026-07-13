@@ -16,6 +16,7 @@ export namespace JSX {
    * but we use 'unknown' to remain zero-dependency and lightweight.
    */
   export interface IntrinsicElements {
+    /** Allows any attribute for any HTML tag. */
     [elemName: string]: unknown
   }
 }

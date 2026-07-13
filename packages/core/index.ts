@@ -1000,6 +1000,8 @@ export { t, validate } from './schema.ts'
 export type {
   ArrayOptions,
   FileOptions,
+  FileSchemaOptions,
+  IntersectStatics,
   NumberOptions,
   ObjectOptions,
   OptionalKeys,
