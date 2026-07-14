@@ -391,27 +391,49 @@ const Optional = <T extends TSchema>(schema: T): TOptional<T> =>
 
 /** Schema builder object, similar to TypeBox's `Type`. */
 export const t = {
+  /** Schema representing a string. */
   String,
+  /** Schema representing a number. */
   Number,
+  /** Schema representing an integer. */
   Integer,
+  /** Schema representing a coercible numeric value. */
   Numeric,
+  /** Schema representing a boolean. */
   Boolean,
+  /** Schema representing a null value. */
   Null,
+  /** Schema representing any value. */
   Any,
+  /** Schema representing an unknown value. */
   Unknown,
+  /** Schema representing an exact literal value. */
   Literal,
+  /** Schema representing a union of multiple schemas. */
   Union,
+  /** Schema representing an enum of specific values. */
   Enum,
+  /** Schema representing a nullable schema. */
   Nullable,
+  /** Schema representing an array of items. */
   Array: ArraySchema,
+  /** Schema representing a record of string keys to typed values. */
   Record: RecordSchema,
+  /** Schema representing a fixed-length tuple of typed items. */
   Tuple: TupleSchema,
+  /** Schema representing an object with specific properties. */
   Object: ObjectSchema,
+  /** Schema modifier marking a property as optional. */
   Optional,
+  /** Schema representing an intersection of multiple schemas. */
   Intersect,
+  /** Schema representing a string that encodes an object. */
   ObjectString,
+  /** Schema representing a File object. */
   File: FileSchema,
+  /** Schema representing an array of File objects. */
   Files: FilesSchema,
+  /** Schema representing a Date object. */
   Date: DateSchema,
 }
 
