@@ -988,6 +988,7 @@ export class Goddo<
   }
 }
 
+/** Error handling utilities and classes. */
 export {
   error,
   GoddoError,
@@ -996,7 +997,9 @@ export {
   ParseError,
   ValidationError,
 } from './error.ts'
+/** Schema validation builders and utilities. */
 export { t, validate } from './schema.ts'
+/** Schema validation types. */
 export type {
   ArrayOptions,
   FileOptions,
@@ -1036,17 +1039,29 @@ export type {
   TUnknown,
   ValidateOptions,
 } from './schema.ts'
+/** Route compilation utilities. */
 export { compileRoutes } from './compile.ts'
+/** Types for compiled routes. */
 export type { CompiledHandler, CompiledHooks, CompiledRoute } from './compile.ts'
+/** Response handling utilities and Server-Sent Events. */
 export { mapResponse, sse } from './handler.ts'
+/** Types for Server-Sent Events. */
 export type { SSEMessage } from './handler.ts'
+/** Cookie manipulation and cryptographic signing. */
 export { Cookie, CookieJar, signCookie, verifyCookie } from './cookie.ts'
+/** Types for cookie attributes and proxy access. */
 export type { CookieAttributes, CookieProxy } from './cookie.ts'
+/** Radix Tree Router. */
 export { Router } from './router.ts'
+/** Types for the Radix Tree Router. */
 export type { RadixNode, RouteData, RouteMatch } from './router.ts'
+/** Core context types. */
 export type { Context, SetContext } from './context.ts'
+/** WebSocket wrapper for Goddo. */
 export { GoddoWebSocket } from './ws.ts'
+/** Types for WebSocket configuration. */
 export type { TopicMap, WSOptions } from './ws.ts'
+/** Framework and routing types. */
 export type {
   AddRoute,
   AnyGoddo,
