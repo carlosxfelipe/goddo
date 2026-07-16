@@ -988,111 +988,248 @@ export class Goddo<
   }
 }
 
-/** Error handling utilities and classes. */
-export {
-  error,
-  GoddoError,
-  InternalServerError,
-  NotFoundError,
-  ParseError,
-  ValidationError,
-} from './error.ts'
-/** Schema validation builders and utilities. */
-export { t, validate } from './schema.ts'
-/** Schema validation types. */
-export type {
-  ArrayOptions,
-  FileOptions,
-  FileSchemaOptions,
-  IntersectStatics,
-  NumberOptions,
-  ObjectOptions,
-  OptionalKeys,
-  Prettify,
-  RequiredKeys,
-  SchemaOptions,
-  Static,
-  StaticProperties,
-  StringOptions,
-  TAny,
-  TArray,
-  TBoolean,
-  TDate,
-  TEnum,
-  TFile,
-  TFiles,
-  TInteger,
-  TIntersect,
-  TLiteral,
-  TNull,
-  TNumber,
-  TNumeric,
-  TObject,
-  TObjectString,
-  TOptional,
-  TProperties,
-  TRecord,
-  TSchema,
-  TString,
-  TTuple,
-  TUnion,
-  TUnknown,
-  ValidateOptions,
-} from './schema.ts'
-/** Route compilation utilities. */
+// ---------------------------------------------------------------------------
+// Error handling
+// ---------------------------------------------------------------------------
+
+/** Helper function to create a new GoddoError with a specific HTTP status. */
+export { error } from './error.ts'
+/** Base class for all Goddo framework errors. */
+export { GoddoError } from './error.ts'
+/** Error thrown when an unexpected server condition occurs. */
+export { InternalServerError } from './error.ts'
+/** Error thrown when a requested route or resource is not found. */
+export { NotFoundError } from './error.ts'
+/** Error thrown when incoming data fails to parse (e.g., malformed JSON). */
+export { ParseError } from './error.ts'
+/** Error thrown when incoming data fails schema validation. */
+export { ValidationError } from './error.ts'
+
+// ---------------------------------------------------------------------------
+// Schema validation
+// ---------------------------------------------------------------------------
+
+/** Schema builder object, similar to TypeBox's `Type`. */
+export { t } from './schema.ts'
+/**
+ * Validates a value against a given schema. Throws ValidationError on failure.
+ */
+export { validate } from './schema.ts'
+
+/** Options specific to array validation. */
+export type { ArrayOptions } from './schema.ts'
+/** Options specific to file validation. */
+export type { FileOptions } from './schema.ts'
+/** Internal representation of file options after the `type` key is renamed. */
+export type { FileSchemaOptions } from './schema.ts'
+/** Computes the intersection of a tuple of static schema types. */
+export type { IntersectStatics } from './schema.ts'
+/** Options specific to number validation. */
+export type { NumberOptions } from './schema.ts'
+/** Options specific to object validation. */
+export type { ObjectOptions } from './schema.ts'
+/** Internal helper to extract optional keys. */
+export type { OptionalKeys } from './schema.ts'
+/** Internal helper to prettify object types. */
+export type { Prettify } from './schema.ts'
+/** Internal helper to extract required keys. */
+export type { RequiredKeys } from './schema.ts'
+/** Base options for all schema types. */
+export type { SchemaOptions } from './schema.ts'
+/** Extracts the static TypeScript type from a TSchema. */
+export type { Static } from './schema.ts'
+/** Infers the static type of an object from its properties. */
+export type { StaticProperties } from './schema.ts'
+/** Options specific to string validation. */
+export type { StringOptions } from './schema.ts'
+/** Schema representing any value. */
+export type { TAny } from './schema.ts'
+/** Schema representing an array of items. */
+export type { TArray } from './schema.ts'
+/** Schema representing a boolean. */
+export type { TBoolean } from './schema.ts'
+/** Schema representing a Date object. */
+export type { TDate } from './schema.ts'
+/** Schema representing an enum of specific values. */
+export type { TEnum } from './schema.ts'
+/** Schema representing a File object. */
+export type { TFile } from './schema.ts'
+/** Schema representing an array of File objects (multipart file upload). */
+export type { TFiles } from './schema.ts'
+/** Schema representing an integer. */
+export type { TInteger } from './schema.ts'
+/** Schema representing an intersection of multiple schemas (must satisfy all). */
+export type { TIntersect } from './schema.ts'
+/** Schema representing an exact literal value. */
+export type { TLiteral } from './schema.ts'
+/** Schema representing a null value. */
+export type { TNull } from './schema.ts'
+/** Schema representing a number. */
+export type { TNumber } from './schema.ts'
+/** Schema representing a number that accepts a coercible string. */
+export type { TNumeric } from './schema.ts'
+/** Schema representing an object with specific properties. */
+export type { TObject } from './schema.ts'
+/** Schema representing a string that encodes an object. */
+export type { TObjectString } from './schema.ts'
+/** Schema modifier marking a property as optional. */
+export type { TOptional } from './schema.ts'
+/** Record of object properties mapped to their schemas. */
+export type { TProperties } from './schema.ts'
+/** Schema representing a record of arbitrary string keys to typed values. */
+export type { TRecord } from './schema.ts'
+/** Base interface for all TypeBox-like schemas. */
+export type { TSchema } from './schema.ts'
+/** Schema representing a string. */
+export type { TString } from './schema.ts'
+/** Schema representing a fixed-length tuple of typed items. */
+export type { TTuple } from './schema.ts'
+/** Schema representing a union of multiple schemas. */
+export type { TUnion } from './schema.ts'
+/** Schema representing an unknown value. */
+export type { TUnknown } from './schema.ts'
+/** Options for runtime validation. */
+export type { ValidateOptions } from './schema.ts'
+
+// ---------------------------------------------------------------------------
+// Route compilation
+// ---------------------------------------------------------------------------
+
+/**
+ * Compile all routes of a Goddo instance into optimized handler functions.
+ */
 export { compileRoutes } from './compile.ts'
-/** Types for compiled routes. */
-export type { CompiledHandler, CompiledHooks, CompiledRoute } from './compile.ts'
-/** Response handling utilities and Server-Sent Events. */
-export { mapResponse, sse } from './handler.ts'
-/** Types for Server-Sent Events. */
+/** The fully compiled global HTTP request handler function. */
+export type { CompiledHandler } from './compile.ts'
+/** Pre-merged lifecycle hooks for a single compiled route. */
+export type { CompiledHooks } from './compile.ts'
+/** A fully compiled route — all hooks merged, all flags pre-computed. */
+export type { CompiledRoute } from './compile.ts'
+
+// ---------------------------------------------------------------------------
+// Response handling and Server-Sent Events
+// ---------------------------------------------------------------------------
+
+/** Maps any unknown response value into a standard Web API Response object. */
+export { mapResponse } from './handler.ts'
+/** Creates a Server-Sent Event message to be yielded from a generator handler. */
+export { sse } from './handler.ts'
+/** A Server-Sent Event message accepted by the `sse()` helper. */
 export type { SSEMessage } from './handler.ts'
-/** Cookie manipulation and cryptographic signing. */
-export { Cookie, CookieJar, signCookie, verifyCookie } from './cookie.ts'
-/** Types for cookie attributes and proxy access. */
-export type { CookieAttributes, CookieProxy } from './cookie.ts'
-/** Radix Tree Router. */
+
+// ---------------------------------------------------------------------------
+// Cookie manipulation
+// ---------------------------------------------------------------------------
+
+/** Represents a single HTTP cookie with reactive properties. */
+export { Cookie } from './cookie.ts'
+/** A proxy-backed cookie store for reactive cookie access. */
+export { CookieJar } from './cookie.ts'
+/** Asynchronously signs a cookie value using HMAC-SHA256. */
+export { signCookie } from './cookie.ts'
+/** Asynchronously verifies a signed cookie value. */
+export { verifyCookie } from './cookie.ts'
+/** Configuration attributes for an HTTP cookie. */
+export type { CookieAttributes } from './cookie.ts'
+/** Type wrapper allowing proxy-style property access to Cookies on the Jar. */
+export type { CookieProxy } from './cookie.ts'
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+
+/** High-performance Radix Tree router used by Goddo. */
 export { Router } from './router.ts'
-/** Types for the Radix Tree Router. */
-export type { RadixNode, RouteData, RouteMatch } from './router.ts'
-/** Core context types. */
-export type { Context, SetContext } from './context.ts'
-/** WebSocket wrapper for Goddo. */
+/** Internal Radix Tree node structure. */
+export type { RadixNode } from './router.ts'
+/** Data stored at a matching route node. */
+export type { RouteData } from './router.ts'
+/** Represents a matched route during find(). */
+export type { RouteMatch } from './router.ts'
+
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
+
+/** The primary Goddo request context passed to all route handlers and lifecycle hooks. */
+export type { Context } from './context.ts'
+/** Represents the mutable context that shapes the final HTTP response. */
+export type { SetContext } from './context.ts'
+
+// ---------------------------------------------------------------------------
+// WebSocket
+// ---------------------------------------------------------------------------
+
+/** Wrapper around the native WebSocket with Elysia-compatible pub/sub helpers. */
 export { GoddoWebSocket } from './ws.ts'
-/** Types for WebSocket configuration. */
-export type { TopicMap, WSOptions } from './ws.ts'
-/** Framework and routing types. */
-export type {
-  AddRoute,
-  AnyGoddo,
-  AssertNoReservedSegment,
-  BuildRouteEntry,
-  DocumentDetail,
-  ErrorHandler,
-  GoddoConfig,
-  Handler,
-  HTTPMethod,
-  InferContext,
-  LifeCycleEvent,
-  LifeCycleStore,
-  ListenOptions,
-  LocalHooks,
-  MacroDefinitions,
-  MacroFactory,
-  MaybePromise,
-  ModelRef,
-  ParamsFromPath,
-  PathSegments,
-  PluginScope,
-  ReservedSegmentsIn,
-  ResponseSchema,
-  Route,
-  RouteEntry,
-  RouteRegistry,
-  RouteSchema,
-  TraceHandler,
-  TreatyReservedSegment,
-  VoidHandler,
-} from './types.ts'
+/** One Map per Goddo instance mapping topic names to subscriber sets. */
+export type { TopicMap } from './ws.ts'
+/** Options for configuring a Goddo WebSocket upgrade. */
+export type { WSOptions } from './ws.ts'
+
+// ---------------------------------------------------------------------------
+// Framework and routing types
+// ---------------------------------------------------------------------------
+
+/** Intersect a new route into an existing registry. */
+export type { AddRoute } from './types.ts'
+/** Represents a Goddo instance with any route registry and store. */
+export type { AnyGoddo } from './types.ts'
+/** Compile-time guard that prevents Treaty-reserved path segments. */
+export type { AssertNoReservedSegment } from './types.ts'
+/** Convert a RouteSchema's TSchema fields into a plain RouteEntry. */
+export type { BuildRouteEntry } from './types.ts'
+/** OpenAPI document details for a specific route. */
+export type { DocumentDetail } from './types.ts'
+/** A handler specifically tailored for dealing with errors. */
+export type { ErrorHandler } from './types.ts'
+/** Global configuration options for the Goddo instance. */
+export type { GoddoConfig } from './types.ts'
+/** A standard route handler function. */
+export type { Handler } from './types.ts'
+/** Standard HTTP methods supported by the framework. */
+export type { HTTPMethod } from './types.ts'
+/** Infers the full context type for a route based on its path and schema. */
+export type { InferContext } from './types.ts'
+/** Identifies a specific lifecycle hook event. */
+export type { LifeCycleEvent } from './types.ts'
+/** Storage for all lifecycle hook handlers. */
+export type { LifeCycleStore } from './types.ts'
+/** Options for configuring the HTTP server listener. */
+export type { ListenOptions } from './types.ts'
+/** Local hooks and configurations applied to a specific route. */
+export type { LocalHooks } from './types.ts'
+/** A map of macro names to their corresponding factories. */
+export type { MacroDefinitions } from './types.ts'
+/** Factory returned by a macro definition — returns lifecycle hooks to merge. */
+export type { MacroFactory } from './types.ts'
+/** Utility type for synchronous or asynchronous returns. */
+export type { MaybePromise } from './types.ts'
+/** A reference to a named model registered with `app.model()`. */
+export type { ModelRef } from './types.ts'
+/** Extracts URL parameters from a path string. */
+export type { ParamsFromPath } from './types.ts'
+/** Splits a path string into its URL segments as a string union. */
+export type { PathSegments } from './types.ts'
+/** Hook propagation scope applied when an instance is mounted via `use()`. */
+export type { PluginScope } from './types.ts'
+/** Extracts the subset of path segments that collide with Treaty-reserved words. */
+export type { ReservedSegmentsIn } from './types.ts'
+/** Defines the expected response schema, optionally mapped by HTTP status code. */
+export type { ResponseSchema } from './types.ts'
+/** Represents a compiled route entry in the framework. */
+export type { Route } from './types.ts'
+/** Shape of a single registered route's I/O, inferred from its schemas. */
+export type { RouteEntry } from './types.ts'
+/** Maps path to HTTP method to RouteEntry. */
+export type { RouteRegistry } from './types.ts'
+/** Schema definitions for validating a route's inputs and outputs. */
+export type { RouteSchema } from './types.ts'
+/** A handler that receives timing information for a lifecycle stage. */
+export type { TraceHandler } from './types.ts'
+/** HTTP method names (lowercase) reserved by the Treaty proxy. */
+export type { TreatyReservedSegment } from './types.ts'
+/** A lifecycle handler that returns no value, used for start/stop events. */
+export type { VoidHandler } from './types.ts'
 
 export default Goddo
