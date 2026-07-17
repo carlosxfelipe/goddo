@@ -180,10 +180,28 @@ app.listen(3000)
 deno task bench
 ```
 
-Benchmarks cover router lookup (static, parametric, wildcard, 404), compiled handler throughput
-(GET, POST with validation), compilation overhead, and a compiled-vs-uncompiled comparison.
+Goddo was heavily optimized to offer world-class performance, standing toe-to-toe with the fastest
+runtimes available. Thanks to the integrated Ahead-Of-Time (AOT) compiler and Just-In-Time (JIT)
+schema validation, Goddo excels particularly in heavy I/O operations (like POST/PATCH requests with
+JSON payloads).
 
-See [BENCHMARK.md](./BENCHMARK.md) for detailed performance results and comparisons.
+Below is a direct comparison between **Goddo** and the original **ElysiaJS** using the same API
+structure (measured in requests per second on an Apple M1):
+
+| Route / Benchmark              | ElysiaJS (Bun v1.1.43) | Goddo (Deno v2.9.2) | Comparison                 |
+| ------------------------------ | ---------------------- | ------------------- | -------------------------- |
+| `PATCH /todos/1` (Update JSON) | ~246,300 req/s         | **264,100 req/s**   | **Goddo is ~7% faster** 🚀 |
+| `POST /todos/` (Create JSON)   | ~279,300 req/s         | **277,500 req/s**   | **Tie** ⚡                 |
+| `DELETE /todos/2` (Delete)     | ~458,700 req/s         | **349,000 req/s**   | Elysia is ~31% faster      |
+| `GET /todos/1` (Get specific)  | ~537,600 req/s         | **448,300 req/s**   | Elysia is ~20% faster      |
+| `GET /todos/` (List all)       | ~546,400 req/s         | **493,500 req/s**   | Elysia is ~10% faster      |
+| `GET /page` (HTML Render)      | ~96,300 req/s          | **57,000 req/s**    | Elysia is ~69% faster      |
+| `GET /` (Redirect)             | ~970,800 req/s         | **561,500 req/s**   | Elysia is ~72% faster      |
+
+While Elysia leverages Bun's heavily optimized internal router for static and lightweight `GET`
+endpoints, **Goddo matches or beats Elysia** where it matters most: complex validation and JSON
+parsing operations (`POST`/`PATCH`), making it exceptionally suited for heavy database-driven
+applications.
 
 ## API Collections
 

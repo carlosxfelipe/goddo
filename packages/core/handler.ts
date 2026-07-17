@@ -113,20 +113,30 @@ export const mapResponse = (response: unknown, set: SetContext, jar?: CookieJar)
   // Serialize dirty cookies into Set-Cookie headers
   const cookieHeaders: string[] = jar ? jar.serialize() : []
 
+  let hasSetHeaders = false
+  for (const _ in set.headers) {
+    hasSetHeaders = true
+    break
+  }
+
   if (response instanceof Response) {
-    for (const [key, value] of Object.entries(set.headers)) {
-      if (!response.headers.has(key)) response.headers.set(key, value)
+    if (hasSetHeaders) {
+      for (const key in set.headers) {
+        if (!response.headers.has(key)) response.headers.set(key, set.headers[key]!)
+      }
     }
-    for (const h of cookieHeaders) {
-      response.headers.append('set-cookie', h)
+    if (cookieHeaders.length > 0) {
+      for (const h of cookieHeaders) {
+        response.headers.append('set-cookie', h)
+      }
     }
     return response
   }
 
   const init: ResponseInit = {
     status: set.status ?? 200,
-    headers: set.headers,
   }
+  if (hasSetHeaders) init.headers = set.headers
 
   let result: Response
 
@@ -134,6 +144,7 @@ export const mapResponse = (response: unknown, set: SetContext, jar?: CookieJar)
     case 'string':
       if (!set.headers['content-type']) {
         set.headers['content-type'] = 'text/plain;charset=utf-8'
+        init.headers = set.headers
       }
       result = new Response(response, init)
       break
@@ -164,12 +175,14 @@ export const mapResponse = (response: unknown, set: SetContext, jar?: CookieJar)
           set.headers['content-type'] = 'text/event-stream;charset=utf-8'
         }
         if (!set.headers['cache-control']) set.headers['cache-control'] = 'no-cache'
+        init.headers = set.headers
         result = streamResponse(response, init)
         break
       }
 
       if (!set.headers['content-type']) {
         set.headers['content-type'] = 'application/json;charset=utf-8'
+        init.headers = set.headers
       }
       result = new Response(JSON.stringify(response), init)
       break
@@ -180,6 +193,7 @@ export const mapResponse = (response: unknown, set: SetContext, jar?: CookieJar)
     case 'bigint':
       if (!set.headers['content-type']) {
         set.headers['content-type'] = 'text/plain;charset=utf-8'
+        init.headers = set.headers
       }
       result = new Response(String(response), init)
       break
