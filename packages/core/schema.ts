@@ -862,3 +862,180 @@ const check = (schema: TSchema, value: unknown, path: string, coerce: boolean): 
       return value
   }
 }
+
+// ---------------------------------------------------------------------------
+// JIT Compiler
+// ---------------------------------------------------------------------------
+
+/**
+ * Compiles a TSchema into a highly optimized JIT validation function.
+ * Falls back to dynamic `check` if `new Function` is restricted.
+ *
+ * @param schema The schema to compile
+ * @param options Validation options
+ * @returns An optimized validation function
+ */
+export const compileSchema = (
+  schema: TSchema,
+  options: ValidateOptions = {},
+): (value: unknown) => unknown => {
+  const coerce = options.coerce ?? false
+  const basePath = options.path ?? 'value'
+
+  try {
+    let code = `return function(value) {\n`
+    const schemaMap: Record<number, TSchema> = {}
+    let varCounter = 0
+
+    const fail = (p: string, msg: string, customError?: string) => {
+      const err = customError
+        ? customError.replace(/"/g, '\\"')
+        : `${p}: ${msg.replace(/"/g, '\\"')}`
+      return `throw new helpers.ValidationError("${err}");`
+    }
+
+    const gen = (
+      s: TSchema & Record<string, unknown>,
+      valRef: string,
+      p: string,
+      depth: number,
+    ) => {
+      const indent = '  '.repeat(depth)
+
+      if (s.default !== undefined || s.optional) {
+        code += `${indent}if (${valRef} === undefined) {\n`
+        if (s.default !== undefined) {
+          code += `${indent}  ${valRef} = ${JSON.stringify(s.default)};\n`
+        }
+        code += `${indent}} else {\n`
+      } else {
+        code += `${indent}if (${valRef} === undefined) ${fail(p, 'Required property', s.error)}\n`
+      }
+
+      const d = (s.default !== undefined || s.optional) ? depth + 1 : depth
+      const ind = '  '.repeat(d)
+
+      switch (s.type) {
+        case 'string':
+          code += `${ind}if (typeof ${valRef} !== 'string') ${
+            fail(p, 'Expected string', s.error)
+          }\n`
+          if (s.minLength !== undefined) {
+            code += `${ind}if (${valRef}.length < ${s.minLength}) ${
+              fail(p, `Expected string length >= ${s.minLength}`, s.error)
+            }\n`
+          }
+          if (s.maxLength !== undefined) {
+            code += `${ind}if (${valRef}.length > ${s.maxLength}) ${
+              fail(p, `Expected string length <= ${s.maxLength}`, s.error)
+            }\n`
+          }
+          if (s.pattern !== undefined) {
+            code += `${ind}if (!new RegExp(${JSON.stringify(s.pattern)}).test(${valRef})) ${
+              fail(p, `Expected string to match pattern ${s.pattern}`, s.error)
+            }\n`
+          }
+          if (s.format !== undefined) {
+            code += `${ind}if (!helpers.checkFormat(${JSON.stringify(s.format)}, ${valRef})) ${
+              fail(p, `Expected string with format '${s.format}'`, s.error)
+            }\n`
+          }
+          break
+
+        case 'number':
+        case 'integer':
+        case 'numeric':
+          if (coerce || s.type === 'numeric') {
+            code += `${ind}if (typeof ${valRef} === 'string' && ${valRef}.trim() !== '') {\n`
+            code += `${ind}  const parsed = Number(${valRef});\n`
+            code += `${ind}  if (!Number.isNaN(parsed)) ${valRef} = parsed;\n`
+            code += `${ind}}\n`
+          }
+          code += `${ind}if (typeof ${valRef} !== 'number' || Number.isNaN(${valRef})) ${
+            fail(p, 'Expected number', s.error)
+          }\n`
+          if (s.type === 'integer') {
+            code += `${ind}if (!Number.isInteger(${valRef})) ${
+              fail(p, 'Expected integer', s.error)
+            }\n`
+          }
+          if (s.minimum !== undefined) {
+            code += `${ind}if (${valRef} < ${s.minimum}) ${
+              fail(p, `Expected number >= ${s.minimum}`, s.error)
+            }\n`
+          }
+          if (s.maximum !== undefined) {
+            code += `${ind}if (${valRef} > ${s.maximum}) ${
+              fail(p, `Expected number <= ${s.maximum}`, s.error)
+            }\n`
+          }
+          if (s.multipleOf !== undefined) {
+            code += `${ind}if (${valRef} % ${s.multipleOf} !== 0) ${
+              fail(p, `Expected multiple of ${s.multipleOf}`, s.error)
+            }\n`
+          }
+          break
+
+        case 'boolean':
+          if (coerce) {
+            code += `${ind}if (${valRef} === 'true') ${valRef} = true;\n`
+            code += `${ind}else if (${valRef} === 'false') ${valRef} = false;\n`
+          }
+          code += `${ind}if (typeof ${valRef} !== 'boolean') ${
+            fail(p, 'Expected boolean', s.error)
+          }\n`
+          break
+
+        case 'object':
+          code +=
+            `${ind}if (typeof ${valRef} !== 'object' || ${valRef} === null || Array.isArray(${valRef})) ${
+              fail(p, 'Expected object', s.error)
+            }\n`
+          for (
+            const [key, prop] of Object.entries(
+              s.properties as Record<string, TSchema & Record<string, unknown>>,
+            )
+          ) {
+            const safeKey = JSON.stringify(key)
+            code += `${ind}let _val_${depth}_${key} = ${valRef}[${safeKey}];\n`
+            gen(prop, `_val_${depth}_${key}`, `${p}.${key}`, d + 1)
+            code +=
+              `${ind}if (_val_${depth}_${key} !== undefined) ${valRef}[${safeKey}] = _val_${depth}_${key};\n`
+          }
+
+          if (s.additionalProperties === false) {
+            code += `${ind}for (const key of Object.keys(${valRef})) {\n`
+            code += `${ind}  if (!${
+              JSON.stringify(Object.keys(s.properties as object))
+            }.includes(key)) ${fail(`${p}.\${key}`, 'Unexpected property', s.error)}\n`
+            code += `${ind}}\n`
+          }
+          break
+
+        default:
+          code +=
+            `${ind}${valRef} = helpers.check(helpers.schemaMap[${varCounter}], ${valRef}, "${p}", ${coerce});\n`
+          schemaMap[varCounter] = s
+          varCounter++
+          break
+      }
+
+      if (s.default !== undefined || s.optional) {
+        code += `${indent}}\n`
+      }
+    }
+
+    code += `  let _root = value;\n`
+    gen(schema as TSchema & Record<string, unknown>, '_root', basePath, 1)
+    code += `  return _root;\n`
+    code += `}\n`
+
+    const builder = new Function('helpers', code)
+    const compiledFn = builder({ checkFormat, checkFile, ValidationError, check, schemaMap })
+
+    return (value: unknown) => compiledFn(value)
+  } catch (_err) {
+    // Fallback if 'new Function' fails (e.g. CSP)
+    return (value: unknown) => validate(schema, value, options)
+  }
+}

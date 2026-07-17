@@ -8,8 +8,7 @@ import type { Static, TSchema } from './schema.ts'
 import type { Goddo } from './index.ts'
 
 /** Represents a Goddo instance with any route registry and store. */
-// deno-lint-ignore no-explicit-any
-export type AnyGoddo = Goddo<any, any>
+export type AnyGoddo = Goddo<Record<string, unknown>, RouteRegistry>
 
 /** Standard HTTP methods supported by the framework. */
 export type HTTPMethod =

@@ -3,7 +3,7 @@
  * compile.ts module for @goddo/core
  */
 
-import { validate } from './schema.ts'
+import { compileSchema, validate } from './schema.ts'
 import { mapResponse } from './handler.ts'
 import { cleanupMap, parseBody, runCleanups } from './context.ts'
 import { GoddoError, NotFoundError } from './error.ts'
@@ -62,6 +62,18 @@ export interface CompiledRoute {
   handler: Handler
   /** The local hooks registered for the route. */
   hooks: LocalHooks
+  /** JIT-compiled validator for the request body. */
+  bodyValidator?: (value: unknown) => unknown
+  /** JIT-compiled validator for the request query. */
+  queryValidator?: (value: unknown) => unknown
+  /** JIT-compiled validator for the request params. */
+  paramsValidator?: (value: unknown) => unknown
+  /** JIT-compiled validator for the request headers. */
+  headersValidator?: (value: unknown) => unknown
+  /** JIT-compiled validators for responses, keyed by status code. */
+  responseValidators?: Record<number, (value: unknown) => unknown>
+  /** JIT-compiled validator for generic response schemas (without status map). */
+  fallbackResponseValidator?: (value: unknown) => unknown
   /** The pre-compiled execution context flags and hooks. */
   compiled: {
     hooks: CompiledHooks
@@ -152,6 +164,43 @@ export const compileRoutes = (
         hasResponse: !!route.hooks.response,
         handlerIsAsync: isAsyncFn(route.handler),
       },
+      bodyValidator: route.hooks.body
+        ? compileSchema(resolveModel(route.hooks.body), { coerce: false, path: 'body' })
+        : undefined,
+      queryValidator: route.hooks.query
+        ? compileSchema(resolveModel(route.hooks.query), { coerce: true, path: 'query' })
+        : undefined,
+      paramsValidator: route.hooks.params
+        ? compileSchema(resolveModel(route.hooks.params), { coerce: true, path: 'params' })
+        : undefined,
+      headersValidator: route.hooks.headers
+        ? compileSchema(resolveModel(route.hooks.headers), { coerce: true, path: 'headers' })
+        : undefined,
+      responseValidators: (() => {
+        const res = route.hooks.response
+        if (res && typeof res === 'object' && res !== null && !('type' in res)) {
+          return Object.fromEntries(
+            Object.entries(res as Record<string, TSchema | ModelRef>).map(([status, schema]) => [
+              status,
+              compileSchema(resolveModel(schema), { coerce: false, path: 'response' }),
+            ]),
+          )
+        }
+        return undefined
+      })(),
+      fallbackResponseValidator: (() => {
+        const res = route.hooks.response
+        if (
+          typeof res === 'string' ||
+          (res && typeof res === 'object' && res !== null && 'type' in res)
+        ) {
+          return compileSchema(resolveModel(res as TSchema | ModelRef), {
+            coerce: false,
+            path: 'response',
+          })
+        }
+        return undefined
+      })(),
     }
   })
 
@@ -359,10 +408,24 @@ export const compileRoutes = (
               break
             }
           }
-          if (context.body === undefined) context.body = await parseBody(request)
+          if (context.body === undefined) {
+            try {
+              context.body = await parseBody(request)
+            } catch (err) {
+              throw context.error(400, err instanceof Error ? err.message : 'Invalid Body')
+            }
+          }
         } else {
-          context.body = await parseBody(request)
+          try {
+            context.body = await parseBody(request)
+          } catch (err) {
+            throw context.error(400, err instanceof Error ? err.message : 'Invalid Body')
+          }
         }
+      }
+
+      if (cr.bodyValidator) {
+        context.body = cr.bodyValidator(context.body)
       }
       if (hasTrace) await runTrace('parse', stageStart)
 
@@ -387,29 +450,20 @@ export const compileRoutes = (
 
       // --- Validation (pre-computed flags, no conditional on schema existence) ---
       if (hasTrace) stageStart = performance.now()
-      if (c.hasParams) {
-        context.params = validate(resolveModel(cr.hooks.params!), context.params, {
-          coerce: true,
-          path: 'params',
-        }) as Record<string, string>
+
+      // Validation: Query
+      if (c.hasQuery && cr.queryValidator) {
+        context.query = cr.queryValidator(context.query) as Record<string, string>
       }
 
-      if (c.hasQuery) {
-        context.query = validate(resolveModel(cr.hooks.query!), context.query, {
-          coerce: true,
-          path: 'query',
-        }) as Record<string, string>
+      // Validation: Params
+      if (c.hasParams && cr.paramsValidator) {
+        context.params = cr.paramsValidator(context.params) as Record<string, string>
       }
 
-      if (c.hasHeaders) {
-        context.headers = validate(resolveModel(cr.hooks.headers!), context.headers, {
-          coerce: true,
-          path: 'headers',
-        }) as Record<string, string>
-      }
-
-      if (c.hasBody) {
-        context.body = validate(resolveModel(cr.hooks.body!), context.body, { path: 'body' })
+      // Validation: Headers
+      if (c.hasHeaders && cr.headersValidator) {
+        context.headers = cr.headersValidator(context.headers) as Record<string, string>
       }
 
       if (c.hasCookie) {
@@ -474,26 +528,11 @@ export const compileRoutes = (
 
       // --- Response validation ---
       if (hasTrace) stageStart = performance.now()
-      if (c.hasResponse) {
-        let resSchema: TSchema | undefined
-        if (typeof cr.hooks.response === 'string') {
-          resSchema = resolveModel(cr.hooks.response)
-        } else if (
-          typeof cr.hooks.response === 'object' &&
-          cr.hooks.response !== null &&
-          !('type' in cr.hooks.response)
-        ) {
-          const status = set.status || 200
-          const record = cr.hooks.response as Record<string | number, TSchema | ModelRef>
-          const candidate = record[status] ?? record[String(status)]
-          if (candidate) resSchema = resolveModel(candidate)
-        } else {
-          resSchema = resolveModel(cr.hooks.response as TSchema)
-        }
-        if (resSchema) {
-          response = validate(resSchema, response, {
-            path: 'response',
-          })
+      if (cr.responseValidators || cr.fallbackResponseValidator) {
+        const status = set.status ?? 200
+        const validator = cr.responseValidators?.[status] ?? cr.fallbackResponseValidator
+        if (validator) {
+          response = validator(response)
         }
       }
       if (hasTrace) await runTrace('responseValidation', stageStart)
