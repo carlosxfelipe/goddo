@@ -728,6 +728,11 @@ export class Goddo<
         : this.config.cookieSecret,
       this.models,
     )
+    // Bypass the uncompiled wrapper so handle() invokes the compiled pipeline directly.
+    this.handle = this.compiledHandler as (
+      request: Request,
+      info?: Deno.ServeHandlerInfo | null,
+    ) => Promise<Response>
     return this
   }
 

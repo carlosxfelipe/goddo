@@ -108,20 +108,32 @@ export class Router {
    * @returns The route match details (handler, hooks, params) or null if not found.
    */
   find(method: HTTPMethod, path: string): RouteMatch | null {
-    const segments = path.split('/').filter((segment) => segment !== '')
     const params: Record<string, string> = {}
 
     let node: RadixNode = this.root
     let fallbackWildcard: RouteData | null = null
     let fallbackPath = ''
 
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i]!
+    let i = 0
+    const length = path.length
+
+    // Skip leading slash
+    if (i < length && path[i] === '/') i++
+
+    while (i < length) {
+      // Skip any consecutive slashes
+      while (i < length && path[i] === '/') i++
+      if (i >= length) break
+
+      // Find end of current segment
+      const start = i
+      while (i < length && path[i] !== '/') i++
+      const segment = path.slice(start, i)
 
       const wildcardStore = node.wildcardMethod?.[method] ?? node.wildcardMethod?.ALL
       if (wildcardStore) {
         fallbackWildcard = wildcardStore
-        fallbackPath = segments.slice(i).join('/')
+        fallbackPath = path.slice(start)
       }
 
       const staticChild = node.static?.get(segment)

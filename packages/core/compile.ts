@@ -205,13 +205,19 @@ export const compileRoutes = (
   })
 
   // Build static route map for O(1) lookup (routes with no dynamic segments)
-  const staticMap = new Map<string, CompiledRoute>()
+  // Two-level Map<method, Map<path, CompiledRoute>> avoids per-request string concat.
+  const staticMap = new Map<HTTPMethod, Map<string, CompiledRoute>>()
   // Build handler-to-compiled-route map for dynamic route lookup
   const handlerMap = new Map<Handler, CompiledRoute>()
   for (const cr of compiledRoutes) {
     handlerMap.set(cr.handler, cr)
     if (!cr.path.includes(':') && !cr.path.includes('*')) {
-      staticMap.set(`${cr.method}:${cr.path}`, cr)
+      let methodMap = staticMap.get(cr.method)
+      if (!methodMap) {
+        methodMap = new Map<string, CompiledRoute>()
+        staticMap.set(cr.method, methodMap)
+      }
+      methodMap.set(cr.path, cr)
     }
   }
 
@@ -234,6 +240,10 @@ export const compileRoutes = (
     #headersCache?: Record<string, string>
     #jar?: CookieJar
     #cookieCache?: CookieProxy
+    /** Tracks whether any cleanup callbacks were registered for this context. */
+    hasCleanups = false
+    /** Mutable reference passed into afterHandle/mapResponse/afterResponse hooks. */
+    response: unknown = undefined
 
     constructor(
       request: Request,
@@ -305,6 +315,7 @@ export const compileRoutes = (
         cleanupMap.set(this, cleanups)
       }
       cleanups.push(fn)
+      this.hasCleanups = true
     }
 
     error(status: number, message?: string) {
@@ -390,8 +401,8 @@ export const compileRoutes = (
       if (hasTrace) await runTrace('request', stageStart)
 
       // --- Route lookup ---
-      // Fast path: static route O(1)
-      cr = staticMap.get(`${method}:${path}`)
+      // Fast path: static route O(1) without string concat
+      cr = staticMap.get(method)?.get(path)
 
       // Fallback to radix tree for dynamic routes
       if (!cr) {
@@ -542,7 +553,8 @@ export const compileRoutes = (
       if (hasTrace) stageStart = performance.now()
       if (c.hasAfterHandle) {
         for (const hook of ch.afterHandle) {
-          const result = await hook(Object.assign(context, { response }))
+          context.response = response
+          const result = await hook(context)
           if (result !== undefined) response = result
         }
       }
@@ -563,19 +575,22 @@ export const compileRoutes = (
       if (hasTrace) stageStart = performance.now()
       if (c.hasMapResponse) {
         for (const hook of ch.mapResponse) {
-          const result = await hook(Object.assign(context, { response }))
+          context.response = response
+          const result = await hook(context)
           if (result !== undefined) response = result
         }
       }
       if (hasTrace) await runTrace('mapResponse', stageStart)
 
-      const mapped = mapResponse(response, set, context.getJar())
+      const jar = context.getJar()
+      const mapped = mapResponse(response, set, jar)
 
       // --- onAfterResponse ---
       if (hasTrace) stageStart = performance.now()
       if (c.hasAfterResponse) {
         for (const hook of ch.afterResponse) {
-          await hook(Object.assign(context, { response: mapped }))
+          context.response = mapped
+          await hook(context)
         }
       }
       if (hasTrace) await runTrace('afterResponse', stageStart)
@@ -599,7 +614,7 @@ export const compileRoutes = (
 
       return new Response(error.message, { status })
     } finally {
-      await runCleanups(context)
+      if (context.hasCleanups) await runCleanups(context)
     }
   }
 }
