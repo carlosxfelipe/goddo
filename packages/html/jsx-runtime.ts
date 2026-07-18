@@ -78,11 +78,9 @@ export function jsx(type: unknown, props: Record<string, unknown>): unknown {
   let html = type === Fragment ? '' : `<${type}`
 
   if (type !== Fragment) {
-    const keys = Object.keys(props)
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i] as string
+    for (const key in props) {
       if (key === 'children') continue
-      const val = props[key as string]
+      const val = props[key]
       if (val === true) html += ` ${key}`
       else if (val !== false && val != null) {
         html += typeof val === 'string'

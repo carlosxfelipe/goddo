@@ -318,6 +318,29 @@ export const compileRoutes = (
     }
   }
 
+  // Pre-apply store and decorators to the prototype to avoid per-request Object.assign overhead.
+  // We use getters/setters so that dynamic updates to the global store are reflected.
+  const contextDescriptors: PropertyDescriptorMap = {}
+  for (const key of Object.keys(store)) {
+    contextDescriptors[key] = {
+      get: () => store[key],
+      set: (val) => {
+        store[key] = val
+      },
+      enumerable: true,
+    }
+  }
+  for (const key of Object.keys(decorators)) {
+    contextDescriptors[key] = {
+      get: () => decorators[key],
+      set: (val) => {
+        decorators[key] = val
+      },
+      enumerable: true,
+    }
+  }
+  Object.defineProperties(GoddoContext.prototype, contextDescriptors)
+
   // The compiled handler
   return async (request: Request, info: Deno.ServeHandlerInfo | null = null): Promise<Response> => {
     const urlStr = request.url
@@ -338,7 +361,6 @@ export const compileRoutes = (
     const set: SetContext = { headers: {} }
 
     const context = new GoddoContext(request, path, method, urlStr, pathEnd, set, store, info)
-    Object.assign(context, store, decorators)
 
     const hasTrace = event.trace.length > 0
     const runTrace = async (name: string, start: number) => {

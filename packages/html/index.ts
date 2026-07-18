@@ -23,10 +23,7 @@ export const html =
         if (!ctx.set.headers['content-type']) {
           ctx.set.headers['content-type'] = 'text/html;charset=utf-8'
         }
-        return new Response(ctx.response.toString(), {
-          status: ctx.set.status ?? 200,
-          headers: ctx.set.headers,
-        })
+        return ctx.response.toString()
       }
     })
 
