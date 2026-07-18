@@ -188,18 +188,18 @@ JSON payloads).
 Below is a direct comparison between **Goddo** and the original **ElysiaJS** using the same API
 structure (measured in requests per second on an Apple M1):
 
-| Route / Benchmark              | ElysiaJS (Bun v1.1.43) | Goddo (Deno v2.9.2) | Comparison                  |
+| Route / Benchmark              | ElysiaJS (Bun v1.3.14) | Goddo (Deno v2.9.2) | Comparison                  |
 | ------------------------------ | ---------------------- | ------------------- | --------------------------- |
-| `PATCH /todos/1` (Update JSON) | ~246,300 req/s         | **271,300 req/s**   | **Goddo is ~10% faster** 🚀 |
-| `POST /todos/` (Create JSON)   | ~279,300 req/s         | **277,300 req/s**   | **Tie** ⚡                  |
-| `DELETE /todos/2` (Delete)     | ~458,700 req/s         | **361,000 req/s**   | Elysia is ~27% faster       |
-| `GET /todos/1` (Get specific)  | ~537,600 req/s         | **461,400 req/s**   | Elysia is ~16% faster       |
-| `GET /todos/` (List all)       | ~546,400 req/s         | **517,900 req/s**   | Elysia is ~5% faster        |
-| `GET /page` (HTML Render)      | ~96,300 req/s          | **57,400 req/s**    | Elysia is ~68% faster       |
-| `GET /` (Redirect)             | ~970,800 req/s         | **578,700 req/s**   | Elysia is ~67% faster       |
+| `PATCH /todos/1` (Update JSON) | ~276,200 req/s         | **259,300 req/s**   | Elysia is ~7% faster        |
+| `POST /todos/` (Create JSON)   | ~301,200 req/s         | **275,600 req/s**   | Elysia is ~9% faster        |
+| `DELETE /todos/2` (Delete)     | ~450,500 req/s         | **350,200 req/s**   | Elysia is ~29% faster       |
+| `GET /todos/1` (Get specific)  | ~657,900 req/s         | **451,500 req/s**   | Elysia is ~46% faster       |
+| `GET /todos/` (List all)       | ~900,900 req/s         | **499,800 req/s**   | Elysia is ~80% faster       |
+| `GET /page` (HTML Render)      | ~97,500 req/s          | **59,300 req/s**    | Elysia is ~64% faster       |
+| `GET /` (Redirect)             | ~1,035,000 req/s       | **563,100 req/s**   | Elysia is ~84% faster       |
 
 While Elysia leverages Bun's heavily optimized internal router for static and lightweight `GET`
-endpoints, **Goddo matches or beats Elysia** where it matters most: complex validation and JSON
+endpoints, **Goddo closely matches Elysia** where it matters most: complex validation and JSON
 parsing operations (`POST`/`PATCH`), making it exceptionally suited for heavy database-driven
 applications.
 
