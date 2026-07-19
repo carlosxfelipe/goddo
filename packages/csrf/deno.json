@@ -1,6 +1,6 @@
 {
   "name": "@goddo/csrf",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "CSRF (Cross-Site Request Forgery) protection plugin for Goddo. Automatically generates and validates CSRF tokens via cookies and headers.",
   "exports": "./index.ts"
 }

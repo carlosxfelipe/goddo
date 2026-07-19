@@ -1,6 +1,6 @@
 {
   "name": "@goddo/bearer",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "Bearer token extraction plugin for Goddo, following RFC 6750.",
   "exports": "./index.ts"
 }

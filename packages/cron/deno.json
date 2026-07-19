@@ -1,6 +1,6 @@
 {
   "name": "@goddo/cron",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Task scheduling plugin for Goddo. Includes a zero-dependency cron pattern parser and scheduler.",
   "exports": "./index.ts"
 }

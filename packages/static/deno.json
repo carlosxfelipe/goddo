@@ -1,6 +1,6 @@
 {
   "name": "@goddo/static",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Static file serving plugin for Goddo. Serves files from a local directory with MIME detection, Range support, Cache-Control, and path traversal protection.",
   "exports": "./index.ts"
 }

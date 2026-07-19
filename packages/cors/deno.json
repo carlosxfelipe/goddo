@@ -1,6 +1,6 @@
 {
   "name": "@goddo/cors",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "CORS (Cross-Origin Resource Sharing) plugin for Goddo. Automatically handles CORS headers and OPTIONS preflight requests.",
   "exports": "./index.ts"
 }

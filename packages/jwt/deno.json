@@ -1,6 +1,6 @@
 {
   "name": "@goddo/jwt",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "JWT (JSON Web Token) sign and verify plugin for Goddo. Uses the native Web Crypto API.",
   "exports": "./index.ts"
 }
