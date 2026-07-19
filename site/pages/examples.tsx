@@ -6,12 +6,16 @@ import { Code } from '../components/code.tsx'
 const INDEX_TS_URL = new URL('../../src/index.ts', import.meta.url)
 const APP_TSX_URL = new URL('../../src/app.tsx', import.meta.url)
 const PAGE_TSX_URL = new URL('../../src/page.tsx', import.meta.url)
+const LAYOUT_TSX_URL = new URL('../../src/components/Layout.tsx', import.meta.url)
+const TODOITEM_TSX_URL = new URL('../../src/components/TodoItem.tsx', import.meta.url)
 
 export async function renderExamples() {
-  const [indexSource, appSource, pageSource] = await Promise.all([
+  const [indexSource, appSource, pageSource, layoutSource, todoItemSource] = await Promise.all([
     Deno.readTextFile(INDEX_TS_URL),
     Deno.readTextFile(APP_TSX_URL),
     Deno.readTextFile(PAGE_TSX_URL),
+    Deno.readTextFile(LAYOUT_TSX_URL),
+    Deno.readTextFile(TODOITEM_TSX_URL),
   ])
 
   return Layout({
@@ -28,8 +32,8 @@ export async function renderExamples() {
           in the repository) is a full Todo API: CRUD with validation via{' '}
           <code>t</code>, automatic documentation with <code>@goddo/openapi</code>, an{' '}
           <code>/llms.txt</code>{' '}
-          endpoint for AI agents, and an SSR page in TSX with Pico CSS, Phosphor Icons, and
-          Alpine.js — exactly the same stack as this site.
+          endpoint for AI agents, and a true HATEOAS / HTMX architecture with TSX Server-Side
+          Rendering.
         </p>
         <div style='background-color: var(--pico-form-element-background); padding: 1rem; border-left: 4px solid var(--pico-primary); margin-bottom: 2rem;'>
           <strong>Standalone Demo:</strong>{' '}
@@ -61,10 +65,16 @@ export async function renderExamples() {
 
         <article style='margin-top: 2rem;'>
           <h2 style='display: flex; align-items: center; gap: 0.5rem;'>
-            <i class='ph ph-list-checks' style='color: var(--pico-primary);'></i> Todo API
+            <i class='ph ph-list-checks' style='color: var(--pico-primary);'></i>{' '}
+            API & Content Negotiation
           </h2>
           <p>
-            Full source code of <code>src/app.tsx</code> (verbatim, including comments):
+            The <code>src/app.tsx</code>{' '}
+            file contains the API routes. Notice how Goddo easily handles
+            <strong>Content Negotiation</strong>: if the request comes from HTMX (checking the{' '}
+            <code>HX-Request</code>{' '}
+            header), it returns the rendered TSX component fragment. Otherwise, it functions as a
+            standard JSON REST API.
           </p>
           <Code lang='tsx'>{appSource}</Code>
         </article>
@@ -72,20 +82,25 @@ export async function renderExamples() {
         <article style='margin-top: 2rem;'>
           <h2 style='display: flex; align-items: center; gap: 0.5rem;'>
             <i class='ph ph-browser' style='color: var(--pico-primary);'></i>{' '}
-            SSR Page (TSX + Alpine.js)
+            HATEOAS Interface (HTMX + Alpine.js)
           </h2>
           <p>
-            Rendered with{' '}
-            <code>@goddo/html</code>, no build step. Interactivity (adding, editing, completing, and
-            removing tasks) via Alpine.js calling the API itself. Full source code of{' '}
-            <code>src/page.tsx</code> (verbatim, including comments):
+            The UI is split into components to enable hypermedia-driven interactions.
+            <code>src/page.tsx</code> orchestrates the page:
           </p>
           <Code lang='tsx'>{pageSource}</Code>
-          <p style='color: var(--pico-muted-color);'>
-            This very site is served the same way: a Goddo app with <code>@goddo/html</code>{' '}
-            rendering TSX pages, using Pico CSS (classless), Phosphor Icons, and Alpine.js via CDN —
-            no build step.
+
+          <p style='margin-top: 1rem;'>
+            <code>src/components/TodoItem.tsx</code>{' '}
+            is a standalone component that replaces itself in the DOM via{' '}
+            <code>hx-swap="outerHTML"</code> when toggled, edited, or deleted:
           </p>
+          <Code lang='tsx'>{todoItemSource}</Code>
+
+          <p style='margin-top: 1rem;'>
+            <code>src/components/Layout.tsx</code> encapsulates the document boilerplate:
+          </p>
+          <Code lang='tsx'>{layoutSource}</Code>
         </article>
 
         <article style='margin-top: 2rem;'>

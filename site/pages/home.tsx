@@ -118,8 +118,9 @@ new Goddo()
             Complete working example
           </h3>
           <p style='color: var(--pico-muted-color); max-width: 560px; margin: 0.5rem auto 1.5rem;'>
-            The official demo (a Todo List with SSR in TSX, Alpine.js, and OpenAPI) is included in
-            the repository under <code>src/</code>. See the examples page for the full code.
+            The official demo (a Todo List with SSR in TSX, HTMX, Alpine.js, and OpenAPI) is
+            included in the repository under{' '}
+            <code>src/</code>. See the examples page for the full code.
           </p>
           <a href='/examples' role='button' class='secondary'>
             View examples <i class='ph ph-arrow-right'></i>

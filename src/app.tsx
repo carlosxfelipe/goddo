@@ -3,6 +3,7 @@ import { html } from '@goddo/html'
 import { openapi } from '@goddo/openapi'
 import { llmstxt } from '@goddo/llms-txt'
 import { renderPage, type Todo } from './page.tsx'
+import { TodoItem } from './components/TodoItem.tsx'
 
 // Seed data — single source of truth for the initial store state
 const SEED: [number, Todo][] = [
@@ -54,15 +55,16 @@ export const app = new Goddo()
         params: t.Object({ id: t.Numeric() }),
         detail: { summary: 'Get a todo by ID', tags: ['Todos'] },
       })
-      .post('/', ({ body }) => {
+      .post('/', ({ body, headers }) => {
         const todo: Todo = { id: idCounter++, title: body.title, completed: false }
         todos.set(todo.id, todo)
+        if (headers['hx-request']) return TodoItem(todo)
         return todo
       }, {
         body: t.Object({ title: t.String() }),
         detail: { summary: 'Create a new todo', tags: ['Todos'] },
       })
-      .patch('/:id', ({ params: { id }, body, set }) => {
+      .patch('/:id', ({ params: { id }, body, headers, set }) => {
         const todo = todos.get(id)
         if (!todo) {
           set.status = 404
@@ -70,6 +72,7 @@ export const app = new Goddo()
         }
         if (body.title !== undefined) todo.title = body.title
         if (body.completed !== undefined) todo.completed = body.completed
+        if (headers['hx-request']) return TodoItem(todo)
         return todo
       }, {
         params: t.Object({ id: t.Numeric() }),
@@ -79,12 +82,13 @@ export const app = new Goddo()
         }),
         detail: { summary: 'Partially update a todo', tags: ['Todos'] },
       })
-      .delete('/:id', ({ params: { id }, set }) => {
+      .delete('/:id', ({ params: { id }, headers, set }) => {
         if (!todos.has(id)) {
           set.status = 404
           return { error: 'Todo not found' }
         }
         todos.delete(id)
+        if (headers['hx-request']) return ''
         return { success: true }
       }, {
         params: t.Object({ id: t.Numeric() }),
