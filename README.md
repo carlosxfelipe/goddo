@@ -190,13 +190,13 @@ structure (measured in requests per second on an Apple M1):
 
 | Route / Benchmark              | ElysiaJS (Bun v1.3.14) | Goddo (Deno v2.9.3) | Comparison            |
 | ------------------------------ | ---------------------- | ------------------- | --------------------- |
-| `PATCH /todos/1` (Update JSON) | ~276,200 req/s         | **260,300 req/s**   | Elysia is ~6% faster  |
-| `POST /todos/` (Create JSON)   | ~301,200 req/s         | **283,100 req/s**   | Elysia is ~6% faster  |
-| `DELETE /todos/2` (Delete)     | ~450,500 req/s         | **388,000 req/s**   | Elysia is ~16% faster |
-| `GET /todos/1` (Get specific)  | ~657,900 req/s         | **494,200 req/s**   | Elysia is ~33% faster |
-| `GET /todos/` (List all)       | ~900,900 req/s         | **526,300 req/s**   | Elysia is ~71% faster |
-| `GET /page` (HTML Render)      | ~97,500 req/s          | **55,570 req/s**    | Elysia is ~75% faster |
-| `GET /` (Redirect)             | ~1,035,000 req/s       | **657,400 req/s**   | Elysia is ~57% faster |
+| `PATCH /todos/1` (Update JSON) | ~276,200 req/s         | **218,900 req/s**   | Elysia is ~26% faster |
+| `POST /todos/` (Create JSON)   | ~301,200 req/s         | **256,700 req/s**   | Elysia is ~17% faster |
+| `DELETE /todos/2` (Delete)     | ~450,500 req/s         | **353,400 req/s**   | Elysia is ~27% faster |
+| `GET /todos/1` (Get specific)  | ~657,900 req/s         | **511,900 req/s**   | Elysia is ~29% faster |
+| `GET /todos/` (List all)       | ~900,900 req/s         | **554,500 req/s**   | Elysia is ~62% faster |
+| `GET /page` (HTML Render)      | ~97,500 req/s          | **64,830 req/s**    | Elysia is ~50% faster |
+| `GET /` (Redirect)             | ~1,035,000 req/s       | **672,000 req/s**   | Elysia is ~54% faster |
 
 While Elysia leverages Bun's heavily optimized internal router for static and lightweight `GET`
 endpoints, **Goddo closely matches Elysia** where it matters most: complex validation and JSON
