@@ -729,15 +729,18 @@ export class Goddo<
       this.models,
     )
     // Bypass the uncompiled wrapper so handle() invokes the compiled pipeline directly.
-    this.handle = this.compiledHandler as (
-      request: Request,
-      info?: Deno.ServeHandlerInfo | null,
-    ) => Promise<Response>
+    this.handle = this.compiledHandler
     return this
   }
 
   /** Processes an incoming HTTP Request and resolves it to a Response. */
-  handle = async (request: Request, info?: Deno.ServeHandlerInfo | null): Promise<Response> => {
+  handle: (
+    request: Request,
+    info?: Deno.ServeHandlerInfo | null,
+  ) => Response | Promise<Response> = async (
+    request: Request,
+    info?: Deno.ServeHandlerInfo | null,
+  ): Promise<Response> => {
     // Use compiled handler if available (AOT fast path)
     if (this.compiledHandler) return this.compiledHandler(request, info)
 

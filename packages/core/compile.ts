@@ -94,13 +94,17 @@ export interface CompiledRoute {
     hasResponse: boolean
     handlerIsAsync: boolean
   }
+  /** Whether the route qualifies for the synchronous fast path (no hooks, no validators, sync handler). */
+  fast: boolean
+  /** Whether the route qualifies for the lean async fast path for body methods (no custom hooks). */
+  fastBody: boolean
 }
 
 /** The fully compiled global HTTP request handler function. */
 export type CompiledHandler = (
   request: Request,
   info?: Deno.ServeHandlerInfo | null,
-) => Promise<Response>
+) => Response | Promise<Response>
 
 /**
  * Compile all routes of a Goddo instance into optimized handler functions.
@@ -140,30 +144,42 @@ export const compileRoutes = (
       error: [...errorHooks, ...toArray(route.hooks.error)],
     }
 
+    const compiled = {
+      hooks,
+      hasLocalRequest: hooks.localRequest.length > 0,
+      hasParse: hooks.parse.length > 0,
+      hasTransform: hooks.transform.length > 0,
+      hasDerive: hooks.derive.length > 0,
+      hasResolve: hooks.resolve.length > 0,
+      hasBeforeHandle: hooks.beforeHandle.length > 0,
+      hasAfterHandle: hooks.afterHandle.length > 0,
+      hasMapResponse: hooks.mapResponse.length > 0,
+      hasAfterResponse: hooks.afterResponse.length > 0,
+      hasParams: !!route.hooks.params,
+      hasQuery: !!route.hooks.query,
+      hasHeaders: !!route.hooks.headers,
+      hasBody: !!route.hooks.body,
+      hasCookie: !!route.hooks.cookie,
+      hasResponse: !!route.hooks.response,
+      handlerIsAsync: isAsyncFn(route.handler),
+    }
+
     return {
       method: route.method,
       path: route.path,
       handler: route.handler,
       hooks: route.hooks,
-      compiled: {
-        hooks,
-        hasLocalRequest: hooks.localRequest.length > 0,
-        hasParse: hooks.parse.length > 0,
-        hasTransform: hooks.transform.length > 0,
-        hasDerive: hooks.derive.length > 0,
-        hasResolve: hooks.resolve.length > 0,
-        hasBeforeHandle: hooks.beforeHandle.length > 0,
-        hasAfterHandle: hooks.afterHandle.length > 0,
-        hasMapResponse: hooks.mapResponse.length > 0,
-        hasAfterResponse: hooks.afterResponse.length > 0,
-        hasParams: !!route.hooks.params,
-        hasQuery: !!route.hooks.query,
-        hasHeaders: !!route.hooks.headers,
-        hasBody: !!route.hooks.body,
-        hasCookie: !!route.hooks.cookie,
-        hasResponse: !!route.hooks.response,
-        handlerIsAsync: isAsyncFn(route.handler),
-      },
+      compiled,
+      fast: !compiled.hasLocalRequest && !compiled.hasParse && !compiled.hasTransform &&
+        !compiled.hasDerive && !compiled.hasResolve && !compiled.hasBeforeHandle &&
+        (!compiled.hasAfterHandle || hooks.afterHandle.every((h) => !isAsyncFn(h))) &&
+        !compiled.hasMapResponse && !compiled.hasAfterResponse &&
+        !compiled.hasBody && !compiled.hasCookie && !compiled.hasResponse &&
+        !compiled.handlerIsAsync,
+      fastBody: !compiled.hasLocalRequest && !compiled.hasParse && !compiled.hasTransform &&
+        !compiled.hasDerive && !compiled.hasResolve && !compiled.hasBeforeHandle &&
+        !compiled.hasMapResponse && !compiled.hasAfterResponse &&
+        !compiled.hasCookie && !compiled.hasResponse,
       bodyValidator: route.hooks.body
         ? compileSchema(resolveModel(route.hooks.body), { coerce: false, path: 'body' })
         : undefined,
@@ -352,37 +368,120 @@ export const compileRoutes = (
   }
   Object.defineProperties(GoddoContext.prototype, contextDescriptors)
 
-  // The compiled handler
-  return async (request: Request, info: Deno.ServeHandlerInfo | null = null): Promise<Response> => {
-    const urlStr = request.url
-    const method = request.method as HTTPMethod
+  const hasTrace = event.trace.length > 0
+  const canFast = !hasGlobalRequest && !hasTrace
 
-    const protocolEnd = urlStr.indexOf('://')
-    let pathStart = 0
-    if (protocolEnd !== -1) {
-      pathStart = urlStr.indexOf('/', protocolEnd + 3)
-      if (pathStart === -1) pathStart = urlStr.length
+  const handleErrorFast = async (
+    err: unknown,
+    context: GoddoContext,
+    set: SetContext,
+    cr: CompiledRoute | undefined,
+  ): Promise<Response> => {
+    try {
+      const error = err instanceof Error ? err : new Error(String(err))
+      const code = error instanceof GoddoError ? error.code : 'UNKNOWN'
+      const status = error instanceof GoddoError ? error.status : 500
+      const routeErrorHooks = cr?.compiled.hooks.error ?? errorHooks
+      for (const hook of routeErrorHooks) {
+        const result = await hook(Object.assign(context, { error, code }))
+        if (result !== undefined) {
+          if (!set.status || set.status < 400) set.status = status
+          return mapResponse(result, set, context.getJar())
+        }
+      }
+      return new Response(error.message, { status })
+    } finally {
+      if (context.hasCleanups) await runCleanups(context)
     }
-    const pathEnd = urlStr.indexOf('?', pathStart)
-    const path = pathStart === urlStr.length
-      ? '/'
-      : (pathEnd === -1 ? urlStr.substring(pathStart) : urlStr.substring(pathStart, pathEnd))
+  }
 
-    // Build set
-    const set: SetContext = { headers: {} }
-
-    const context = new GoddoContext(request, path, method, urlStr, pathEnd, set, store, info)
-
-    const hasTrace = event.trace.length > 0
-    const runTrace = async (name: string, start: number) => {
-      if (!hasTrace) return
-      const duration = performance.now() - start
-      for (const hook of event.trace) {
-        await hook(Object.assign(context, { event: name, duration }))
+  // Runs sync afterHandle hooks inline and maps the final response (fast path).
+  const finishFast = (
+    response: unknown,
+    context: GoddoContext,
+    set: SetContext,
+    cr: CompiledRoute,
+  ): Response | Promise<Response> => {
+    if (cr.compiled.hasAfterHandle) {
+      const hooks = cr.compiled.hooks.afterHandle
+      for (let i = 0; i < hooks.length; i++) {
+        context.response = response
+        const result = hooks[i]!(context)
+        if (result instanceof Promise) {
+          // A hook detected as sync returned a Promise — finish asynchronously.
+          return result.then(async (res) => {
+            if (res !== undefined) response = res
+            for (let j = i + 1; j < hooks.length; j++) {
+              context.response = response
+              const r = await hooks[j]!(context)
+              if (r !== undefined) response = r
+            }
+            const mapped = mapResponse(response, set, context.getJar())
+            if (context.hasCleanups) await runCleanups(context)
+            return mapped
+          })
+        }
+        if (result !== undefined) response = result
       }
     }
+    const mapped = mapResponse(response, set, context.getJar())
+    if (context.hasCleanups) return runCleanups(context).then(() => mapped)
+    return mapped
+  }
 
-    let cr: CompiledRoute | undefined
+  // Lean async fast path for body methods (POST/PATCH/PUT/DELETE) without custom hooks:
+  // parse → validate → handler → finish, skipping all pipeline stage checks.
+  const runFastBody = async (
+    request: Request,
+    context: GoddoContext,
+    set: SetContext,
+    cr: CompiledRoute,
+  ): Promise<Response> => {
+    try {
+      let body: unknown
+      try {
+        body = await parseBody(request)
+      } catch (err) {
+        throw context.error(400, err instanceof Error ? err.message : 'Invalid Body')
+      }
+      context.body = cr.bodyValidator ? cr.bodyValidator(body) : body
+      if (cr.queryValidator) {
+        context.query = cr.queryValidator(context.query) as Record<string, string>
+      }
+      if (cr.paramsValidator) {
+        context.params = cr.paramsValidator(context.params) as Record<string, string>
+      }
+      if (cr.headersValidator) {
+        context.headers = cr.headersValidator(context.headers) as Record<string, string>
+      }
+      let response = cr.handler(context)
+      if (response instanceof Promise) response = await response
+      return await finishFast(response, context, set, cr)
+    } catch (err) {
+      return handleErrorFast(err, context, set, cr)
+    }
+  }
+
+  // The full async pipeline (hooks, parsing, validation, tracing)
+  const runPipeline = async (
+    request: Request,
+    context: GoddoContext,
+    set: SetContext,
+    crIn: CompiledRoute | undefined,
+  ): Promise<Response> => {
+    const method = context.method as HTTPMethod
+    const path = context.path
+
+    const runTrace = hasTrace
+      ? async (name: string, start: number) => {
+        const duration = performance.now() - start
+        for (const hook of event.trace) {
+          await hook(Object.assign(context, { event: name, duration }))
+        }
+      }
+      : undefined
+
+    let cr: CompiledRoute | undefined = crIn
 
     try {
       let stageStart = 0
@@ -393,16 +492,16 @@ export const compileRoutes = (
         for (const hook of event.request) {
           const result = await hook(context)
           if (result !== undefined) {
-            if (hasTrace) await runTrace('request', stageStart)
+            if (runTrace) await runTrace('request', stageStart)
             return mapResponse(result, set, context.getJar())
           }
         }
       }
-      if (hasTrace) await runTrace('request', stageStart)
+      if (runTrace) await runTrace('request', stageStart)
 
       // --- Route lookup ---
       // Fast path: static route O(1) without string concat
-      cr = staticMap.get(method)?.get(path)
+      if (!cr) cr = staticMap.get(method)?.get(path)
 
       // Fallback to radix tree for dynamic routes
       if (!cr) {
@@ -423,12 +522,12 @@ export const compileRoutes = (
         for (const hook of ch.localRequest) {
           const result = await hook(context)
           if (result !== undefined) {
-            if (hasTrace) await runTrace('localRequest', stageStart)
+            if (runTrace) await runTrace('localRequest', stageStart)
             return mapResponse(result, set, context.getJar())
           }
         }
       }
-      if (hasTrace) await runTrace('localRequest', stageStart)
+      if (runTrace) await runTrace('localRequest', stageStart)
 
       // --- onParse ---
       if (hasTrace) stageStart = performance.now()
@@ -460,7 +559,7 @@ export const compileRoutes = (
       if (cr.bodyValidator) {
         context.body = cr.bodyValidator(context.body)
       }
-      if (hasTrace) await runTrace('parse', stageStart)
+      if (runTrace) await runTrace('parse', stageStart)
 
       // --- onTransform ---
       if (hasTrace) stageStart = performance.now()
@@ -469,7 +568,7 @@ export const compileRoutes = (
           await hook(context)
         }
       }
-      if (hasTrace) await runTrace('transform', stageStart)
+      if (runTrace) await runTrace('transform', stageStart)
 
       // --- derive ---
       if (hasTrace) stageStart = performance.now()
@@ -479,7 +578,7 @@ export const compileRoutes = (
           if (derived && typeof derived === 'object') Object.assign(context, derived)
         }
       }
-      if (hasTrace) await runTrace('derive', stageStart)
+      if (runTrace) await runTrace('derive', stageStart)
 
       // --- Validation (pre-computed flags, no conditional on schema existence) ---
       if (hasTrace) stageStart = performance.now()
@@ -511,7 +610,7 @@ export const compileRoutes = (
         }
         validate(resolveModel(cr.hooks.cookie!), cookieObj, { path: 'cookie' })
       }
-      if (hasTrace) await runTrace('validation', stageStart)
+      if (runTrace) await runTrace('validation', stageStart)
 
       // --- resolve ---
       if (hasTrace) stageStart = performance.now()
@@ -521,7 +620,7 @@ export const compileRoutes = (
           if (resolved && typeof resolved === 'object') Object.assign(context, resolved)
         }
       }
-      if (hasTrace) await runTrace('resolve', stageStart)
+      if (runTrace) await runTrace('resolve', stageStart)
 
       // --- onBeforeHandle ---
       if (hasTrace) stageStart = performance.now()
@@ -529,12 +628,12 @@ export const compileRoutes = (
         for (const hook of ch.beforeHandle) {
           const result = await hook(context)
           if (result !== undefined) {
-            if (hasTrace) await runTrace('beforeHandle', stageStart)
+            if (runTrace) await runTrace('beforeHandle', stageStart)
             return mapResponse(result, set, context.getJar())
           }
         }
       }
-      if (hasTrace) await runTrace('beforeHandle', stageStart)
+      if (runTrace) await runTrace('beforeHandle', stageStart)
 
       // --- Handler (sucrose: skip await for sync handlers) ---
       if (hasTrace) stageStart = performance.now()
@@ -547,7 +646,7 @@ export const compileRoutes = (
           response = await response
         }
       }
-      if (hasTrace) await runTrace('handler', stageStart)
+      if (runTrace) await runTrace('handler', stageStart)
 
       // --- onAfterHandle ---
       if (hasTrace) stageStart = performance.now()
@@ -558,7 +657,7 @@ export const compileRoutes = (
           if (result !== undefined) response = result
         }
       }
-      if (hasTrace) await runTrace('afterHandle', stageStart)
+      if (runTrace) await runTrace('afterHandle', stageStart)
 
       // --- Response validation ---
       if (hasTrace) stageStart = performance.now()
@@ -569,7 +668,7 @@ export const compileRoutes = (
           response = validator(response)
         }
       }
-      if (hasTrace) await runTrace('responseValidation', stageStart)
+      if (runTrace) await runTrace('responseValidation', stageStart)
 
       // --- mapResponse ---
       if (hasTrace) stageStart = performance.now()
@@ -580,7 +679,7 @@ export const compileRoutes = (
           if (result !== undefined) response = result
         }
       }
-      if (hasTrace) await runTrace('mapResponse', stageStart)
+      if (runTrace) await runTrace('mapResponse', stageStart)
 
       const jar = context.getJar()
       const mapped = mapResponse(response, set, jar)
@@ -593,7 +692,7 @@ export const compileRoutes = (
           await hook(context)
         }
       }
-      if (hasTrace) await runTrace('afterResponse', stageStart)
+      if (runTrace) await runTrace('afterResponse', stageStart)
 
       return mapped
     } catch (err) {
@@ -616,5 +715,80 @@ export const compileRoutes = (
     } finally {
       if (context.hasCleanups) await runCleanups(context)
     }
+  }
+
+  // The compiled handler: synchronous fast path for hook-free GET/HEAD routes,
+  // falling back to the full async pipeline for everything else.
+  return (
+    request: Request,
+    info: Deno.ServeHandlerInfo | null = null,
+  ): Response | Promise<Response> => {
+    const urlStr = request.url
+    const method = request.method as HTTPMethod
+
+    const protocolEnd = urlStr.indexOf('://')
+    let pathStart = 0
+    if (protocolEnd !== -1) {
+      pathStart = urlStr.indexOf('/', protocolEnd + 3)
+      if (pathStart === -1) pathStart = urlStr.length
+    }
+    const pathEnd = urlStr.indexOf('?', pathStart)
+    const path = pathStart === urlStr.length
+      ? '/'
+      : (pathEnd === -1 ? urlStr.substring(pathStart) : urlStr.substring(pathStart, pathEnd))
+
+    // Build set
+    const set: SetContext = { headers: {} }
+
+    const context = new GoddoContext(request, path, method, urlStr, pathEnd, set, store, info)
+
+    if (canFast) {
+      let cr = staticMap.get(method)?.get(path)
+      if (!cr) {
+        const match = router.find(method, path)
+        if (match) {
+          context.params = match.params
+          cr = handlerMap.get(match.handler)
+        }
+        if (!cr) return handleErrorFast(new NotFoundError(), context, set, undefined)
+      }
+      if (method !== 'GET' && method !== 'HEAD') {
+        if (cr.fastBody) return runFastBody(request, context, set, cr)
+        return runPipeline(request, context, set, cr)
+      }
+      if (cr.fast) {
+        const fastRoute = cr
+        try {
+          if (fastRoute.queryValidator) {
+            context.query = fastRoute.queryValidator(context.query) as Record<string, string>
+          }
+          if (fastRoute.paramsValidator) {
+            context.params = fastRoute.paramsValidator(context.params) as Record<string, string>
+          }
+          if (fastRoute.headersValidator) {
+            context.headers = fastRoute.headersValidator(context.headers) as Record<
+              string,
+              string
+            >
+          }
+          const response = fastRoute.handler(context)
+          if (response instanceof Promise) {
+            return response
+              .then((resolved) => finishFast(resolved, context, set, fastRoute))
+              .catch((err) => handleErrorFast(err, context, set, fastRoute))
+          }
+          const out = finishFast(response, context, set, fastRoute)
+          if (out instanceof Promise) {
+            return out.catch((err) => handleErrorFast(err, context, set, fastRoute))
+          }
+          return out
+        } catch (err) {
+          return handleErrorFast(err, context, set, fastRoute)
+        }
+      }
+      return runPipeline(request, context, set, cr)
+    }
+
+    return runPipeline(request, context, set, undefined)
   }
 }

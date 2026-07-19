@@ -1,6 +1,6 @@
 {
   "name": "@goddo/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "High-performance, type-safe web framework for Deno. Features an incredibly fast router, built-in schema validation, and a DX almost 1:1 with ElysiaJS.",
   "exports": {
     ".": "./index.ts",

@@ -2,7 +2,7 @@ import { Goddo } from '@goddo/core'
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
 
 const req = (app: Goddo, path: string, init?: RequestInit) =>
-  app.handle(new Request(`http://localhost${path}`, init))
+  Promise.resolve(app.handle(new Request(`http://localhost${path}`, init)))
 
 Deno.test('handler intercepts global beforeHandle and sets response', async () => {
   const app = new Goddo()

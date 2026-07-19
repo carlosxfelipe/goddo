@@ -95,6 +95,11 @@ const streamResponse = (
   return new Response(stream, init)
 }
 
+/** Shared immutable ResponseInit for plain text responses (Response copies init, so reuse is safe). */
+const TEXT_INIT: ResponseInit = { headers: { 'content-type': 'text/plain;charset=utf-8' } }
+/** Shared immutable ResponseInit for JSON responses (Response copies init, so reuse is safe). */
+const JSON_INIT: ResponseInit = { headers: { 'content-type': 'application/json;charset=utf-8' } }
+
 /**
  * Maps any unknown response value into a standard Web API Response object.
  * Applies cookies, headers, and status codes set in the request context.
@@ -142,6 +147,9 @@ export const mapResponse = (response: unknown, set: SetContext, jar?: CookieJar)
 
   switch (typeof response) {
     case 'string':
+      if (!hasSetHeaders && set.status === undefined && cookieHeaders.length === 0) {
+        return new Response(response, TEXT_INIT)
+      }
       if (!set.headers['content-type']) {
         set.headers['content-type'] = 'text/plain;charset=utf-8'
         init.headers = set.headers
@@ -180,6 +188,9 @@ export const mapResponse = (response: unknown, set: SetContext, jar?: CookieJar)
         break
       }
 
+      if (!hasSetHeaders && set.status === undefined && cookieHeaders.length === 0) {
+        return new Response(JSON.stringify(response), JSON_INIT)
+      }
       if (!set.headers['content-type']) {
         set.headers['content-type'] = 'application/json;charset=utf-8'
         init.headers = set.headers
