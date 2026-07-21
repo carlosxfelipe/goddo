@@ -15,17 +15,20 @@
     "./packages/static",
     "./packages/treaty"
   ],
+  "imports": {
+    "@db/sqlite": "jsr:@db/sqlite@^0.13.0"
+  },
   "tasks": {
-    "dev": "deno run --watch --allow-net --allow-env --allow-read src/index.ts",
-    "start": "deno run --allow-net --allow-env --allow-read src/index.ts",
-    "test": "deno test --allow-net --allow-read --allow-env",
+    "dev": "deno run --watch --allow-net --allow-env --allow-read --allow-write --allow-ffi src/index.ts",
+    "start": "deno run --allow-net --allow-env --allow-read --allow-write --allow-ffi src/index.ts",
+    "test": "deno test --allow-net --allow-read --allow-env --allow-write --allow-ffi",
     "check": "deno check packages/core/index.ts",
     "fmt": "deno fmt",
     "lint": "deno lint",
-    "bench": "deno bench --allow-net benchmarks/",
+    "bench": "deno bench --allow-net --allow-read --allow-write --allow-ffi benchmarks/",
     "bench:core": "deno bench --allow-net benchmarks/goddo.bench.ts",
-    "bench:app": "deno bench --allow-net benchmarks/app.bench.ts",
-    "coverage": "rm -rf cov/ && deno test --coverage=cov/ --allow-net --allow-read --allow-env && deno coverage cov/"
+    "bench:app": "deno bench --allow-net --allow-read --allow-write --allow-ffi benchmarks/app.bench.ts",
+    "coverage": "rm -rf cov/ && deno test --coverage=cov/ --allow-net --allow-read --allow-env --allow-write --allow-ffi && deno coverage cov/"
   },
   "compilerOptions": {
     "strict": true,
